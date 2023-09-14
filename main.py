@@ -3,8 +3,6 @@ distances = []
 speed_limits = []
 number_of_lanes = []
 
-
-
 class Vertex:
     def __init__(self, name, neighbours=None):
         self.name = name
@@ -49,10 +47,9 @@ class Traffic_Light:
                 return False
 
 class Vehicle:
-    def __init__(self, start, end, speed, emissions_per_hour):
+    def __init__(self, start, end, emissions_per_hour):
         self.start = start
         self.end = end
-        self.speed = speed
         self.emissions_per_hour = emissions_per_hour
         self.path = []
         self.current_vertex = start
