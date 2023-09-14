@@ -3,7 +3,10 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - Intersection
+  - Node
+  - Segment
   layers:
   - Default
   - TransparentFX
