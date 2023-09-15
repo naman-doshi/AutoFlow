@@ -25,6 +25,12 @@ if style == "New York":
     for i in range(height):
         for j in range(width):
             vert = Vertex(num, dist_x*j, dist_y*i)
+            if j != 0:
+                road = Road.connect(vert, vertices[num-1], dist_x, random.randint(20, 60), random.randint(1, 30))
+                roads[num-1][num] = road
+            if i != 0:
+                road = Road.connect(vert, vertices[num-width], dist_y, random.randint(20, 60), random.randint(1, 30))
+                roads[num-width][num] = road
             vertices.append(vert)
             roads[num] = {}
             num += 1
