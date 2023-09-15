@@ -1,11 +1,16 @@
-# 2D array representing kilometer distances between vertices
-
 class Vertex:
     def __init__(self, name, neighbours=None):
         self.name = name
         self.neighbours = neighbours if neighbours else []
         self.visited = {}
         self.traffic_light = None
+
+    def add_neighbour(self, neighbour):
+        self.neighbours.append(neighbour)
+        neighbour.neighbours.append(self)
+    
+    def add_traffic_light(self, traffic_light):
+        self.traffic_light = traffic_light
     
     def number_of_neighbours(self):
         return len(self.neighbours)
@@ -17,6 +22,12 @@ class Road:
         self.length = length
         self.speed_limit = speed_limit
         self.num_lanes = num_lanes
+    
+    @staticmethod
+    def connect(vertex1 : Vertex, vertex2 : Vertex, length, speed_limit, num_lanes):
+        road = Road(vertex1, vertex2, length, speed_limit, num_lanes)
+        vertex1.add_neighbour(vertex2)
+        return road
 
 class Traffic_Light:
     def __init__(self, vertex : Vertex, type_of_light):
