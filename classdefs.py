@@ -1,9 +1,11 @@
 class Vertex:
-    def __init__(self, name, neighbours=None):
+    def __init__(self, name, x, y, neighbours=None):
         self.name = name
         self.neighbours = neighbours if neighbours else []
         self.visited = {}
         self.traffic_light = None
+        self.x = round(x, 2)
+        self.y = round(y, 2)
 
     def add_neighbour(self, neighbour):
         self.neighbours.append(neighbour)
