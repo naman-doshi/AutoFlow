@@ -1,7 +1,4 @@
 # 2D array representing kilometer distances between vertices
-distances = []
-speed_limits = []
-number_of_lanes = []
 
 class Vertex:
     def __init__(self, name, neighbours=None):
@@ -12,14 +9,22 @@ class Vertex:
     
     def number_of_neighbours(self):
         return len(self.neighbours)
+    
+class Road:
+    def __init__(self, start : Vertex, end : Vertex, length, speed_limit, num_lanes):
+        self.start = start
+        self.end = end
+        self.length = length
+        self.speed_limit = speed_limit
+        self.num_lanes = num_lanes
 
 class Traffic_Light:
-    def __init__(self, vertex, type_of_light):
+    def __init__(self, vertex : Vertex, type_of_light):
         self.vertex = vertex
         self.visited = {}
         self.type_of_light = type_of_light # Either pedestrian or intersection
     
-    def add_attrs_intersection(self, road1, road2, on_time_road1, on_time_road2):
+    def add_attrs_intersection(self, road1 : list[Road], road2 : list[Road], on_time_road1, on_time_road2):
         self.road1 = road1
         self.road2 = road2
         self.on_time_road1 = on_time_road1
@@ -47,7 +52,7 @@ class Traffic_Light:
                 return False
 
 class Vehicle:
-    def __init__(self, start, end, emissions_per_hour):
+    def __init__(self, start : Vertex, end : Vertex, emissions_per_hour):
         self.start = start
         self.end = end
         self.emissions_per_hour = emissions_per_hour
