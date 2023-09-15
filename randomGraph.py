@@ -35,10 +35,6 @@ if style == "New York":
             roads[num] = {}
             num += 1
 
-    
-
-
-
 # Create vehicles
 for i in range(num_vehicles):
     start = random.randint(0, num_vertices - 1)
@@ -49,3 +45,7 @@ for i in range(num_vehicles):
     vehicles.append(vehicle)
 
 vehicles.sort(key = lambda x: x.emissions_per_hour, reverse = not prioritiseEV)
+
+
+def heuristic(start : Vertex, end : Vertex):
+    return ((start.x - end.x)**2 + (start.y - end.y)**2)**0.5
