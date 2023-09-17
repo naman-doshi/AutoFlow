@@ -495,10 +495,7 @@ class Landscape:
                 landPlotID = self.landscapeMatrix[yPos][xPos]
 
                 # If the current cell is the bottom left corner, create new land plot
-                if (
-                    landPlotID == self.landscapeMatrix[yPos][xPos+1] == self.landscapeMatrix[yPos+1][xPos] and
-                    landPlotID != self.landscapeMatrix[yPos][xPos-1] and landPlotID != self.landscapeMatrix[yPos-1][xPos]
-                ):
+                if landPlotID != self.landscapeMatrix[yPos][xPos-1] and landPlotID != self.landscapeMatrix[yPos-1][xPos]:
 
                     # Initiate size variables of the land plot
                     xSize, ySize = 0, 0
