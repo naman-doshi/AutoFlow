@@ -1,6 +1,6 @@
 # Hello from Naman
 
-from Components import *
+from LandscapeComponents import *
 
 landscape = Landscape(xSize=5, ySize=5)
 

@@ -1,13 +1,13 @@
 """
-This script contains all of the object definitions required for the simulation.
+This script contains all of the environment object definitions required for virtual landscape creation.
 
-Environmental component hierarchy:
+Landscape component hierarchy:
 - Landscape
     - Landplots
     - Intersections (including traffic lights)
     - Roads
 
-An algorithm for generating random landscapes is included.
+An original algorithm for generating random landscapes is included.
 """
 
 
