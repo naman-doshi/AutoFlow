@@ -113,7 +113,7 @@ class LandPlotDescriptor:
 
     Assuming that the generated landscape faces North:
     - xRange is the horizontal width (west to east) of the land plot
-    - yRange is the verticle length (south to north) of the land plot
+    - yRange is the vertical length (south to north) of the land plot
     - randomOrientation indicates whether x and y can be swapped when generating the specified landplot
     """
 
