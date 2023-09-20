@@ -15,6 +15,7 @@ An original algorithm for generating random landscapes is included.
 from collections import defaultdict
 from random import randint
 from copy import deepcopy
+import math
 #=========================================
 
 
@@ -151,6 +152,42 @@ class Landscape:
 
         # Initiate component references
         self.reset_landscape()
+
+    def get_neighbors(self, node):
+        """
+        Get neighboring cells of a given node for pathfinding.
+        """
+        x, y = node
+        neighbors = []
+
+        # Define possible movement directions (up, down, left, right)
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+        for dx, dy in directions:
+            new_x, new_y = x + dx, y + dy
+
+            # Check if the new coordinates are within the landscape bounds
+            if 0 <= new_x < self.xSize and 0 <= new_y < self.ySize:
+                neighbors.append((new_x, new_y))
+
+        return neighbors
+    
+    def get_cost(self, current, neighbor):
+        """
+        Calculate the cost to move from the current cell to the neighbor cell.
+        In this example, you can use the Euclidean distance as the cost.
+        """
+        x1, y1 = current
+        x2, y2 = neighbor
+
+        # Calculate Euclidean distance
+        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+        # Optionally, you can consider road speed limits or other factors
+        # For example, you can access road speed limits using self.roadmap
+
+        # For now, return the Euclidean distance as the cost
+        return distance
 
     def reset_landscape(self) -> None:
 
