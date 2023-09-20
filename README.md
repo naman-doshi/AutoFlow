@@ -1,4 +1,4 @@
-![Untitled](logo.png)
+![Untitled](Logo.png)
 
 ---
 
