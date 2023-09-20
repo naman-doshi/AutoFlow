@@ -3,6 +3,16 @@ import random
 
 trafficLightPeriod = 1
 carSpeed = 40
+numberCars = 500
+
+if trafficLightPeriod <= 0 or trafficLightPeriod % 1 != 0:
+  raise Exception("Traffic light period must be positive integer")
+
+if carSpeed <= 0 or carSpeed % 1 != 0:
+  raise Exception("Car speed must be positive integer")
+
+if numberCars <= 0 or numberCars % 1 != 0:
+  raise Exception("Number of cars must be positive integer")
 
 roads = [Road(1, 170), Road(2, 120), Road(3, 170)]
 
@@ -15,7 +25,6 @@ numPass = int((carSpeed / 3.6) * trafficLightPeriod / 4.5) # Average length of c
 
 # Car Generation
 cars = []
-numberCars = 500
 for i in range(numberCars):
   cars.append(Car(i*2, random.randint(0, 5)))
 
@@ -192,7 +201,7 @@ for i in range(numberCars):
       found = True
 
     if not found:
-      print(f'route for car {i} not found')
+      raise Exception(f"Car {i} could not be assigned to road")
 
   assignedRoads[car] = (car.departureTime, road)
   # print(car.emissions, car.departureTime, road.name)
@@ -216,7 +225,7 @@ for car, road in sortedRoads:
 
   distToEnd = abs(road.length - road.numCars * 4.5)
   timeToEnd = distToEnd / carSpeed * 3.6
-  #print(timeToEnd)
+  # print(timeToEnd)
 
   road.numCars += 1
 
@@ -229,6 +238,11 @@ endingtimes_autoflow.sort()
 
 print("Selfish Navigation:")
 print("Median Commuting Time:", commutingtimes_selfish[len(commutingtimes_selfish) // 2])
+
+# ERROR DETECTION
+if commutingtimes_selfish[len(commutingtimes_selfish) // 2] <= 0:
+  raise Exception("Median selfish commuting time is negative, please check custom parameters")
+
 print("Ending Time:", max(endingtimes_selfish))
 print("Total Emissions:", emissions_selfish)
 print("Max Congestion:", maxCongestion_selfish)
@@ -237,6 +251,11 @@ print()
 
 print("Autoflow:")
 print("Median Commuting Time:", commutingtimes_autoflow[len(commutingtimes_autoflow) // 2])
+
+# ERROR DETECTION
+if commutingtimes_autoflow[len(commutingtimes_autoflow) // 2] <= 0:
+  raise Exception("Median AutoFlow commuting time is negative, please check custom parameters")
+
 print("Ending Time:", max(endingtimes_autoflow))
 print("Total Emissions:", emissions_autoflow)
 print("Max Congestion:", maxCongestion_autoflow)

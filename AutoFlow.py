@@ -86,4 +86,7 @@ landscape = Landscape(xSize=10, ySize=10)
 cars = [[(0, 0), (9, 9)], [(0, 9), (9, 0)], [(5, 5), (5, 7)], [(5, 5), (5, 3)]]
 for car in cars:
     path = astar_search(landscape, car[0], car[1])
-    print(path)
+    if path == None:
+        raise Exception("No path found, please try again")
+    else:
+        print(path)
