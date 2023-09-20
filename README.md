@@ -12,11 +12,15 @@ Our Unity project for simulation can be found at: https://github.com/Software-Ca
 
 Naman Doshi, James Jiang, Bowen Wu, Xuanyu Liu
 
+---
+
 ## Overview
 
 Uber AutoFlow is a centralised multi-vehicle routing system that leverages smartphone-to-server wireless communications to overcome the barrier of limited intervehicular communications, thus allowing global optimisations that enhance road conditions while lowering CO2 emissions.
 
 By considering various factors such as the speed limit of relevant roads and the emission rate of each individual vehicle, AutoFlow performs a balanced multi-agent path-searching algorithm (an A\* variant similar to the one shown in David Silver’s [paper](https://www.davidsilver.uk/wp-content/uploads/2020/03/coop-path-AIWisdom.pdf)).
+
+---
 
 ## File Navigation Made Easy
 
@@ -45,6 +49,8 @@ Includes sample, and example code, to demonstrate the functionality of the city 
 This is the main program — it includes our A\* variant, which is used to find the optimal path for each vehicle. It includes definitions for a landscape and several vehicles, which can be modified at the end of the code.
 
 TO RUN: Execute the code, and it will print each vehicle's optimal path to the terminal.
+
+---
 
 ## Resolving Errors
 
