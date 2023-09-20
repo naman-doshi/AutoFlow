@@ -1,3 +1,6 @@
-Hello!
+![text](https://github.com/naman-doshi/AutoFlow/blob/main/Logo.png)
 
-Where's the Unity project? - GitHub can't store that large of a project under the free plan so we're using PlasticSCM
+
+# AutoFlow
+
+Check out the Unity project at: https://github.com/Software-Cat/AutoFlowUnity/
