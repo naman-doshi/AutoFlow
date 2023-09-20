@@ -92,8 +92,6 @@ maxCongestion_autoflow = 0
 
 cars.sort(key=lambda x: x.emissions)
 
-
-
 # 3 cars can have the best possible outcome (Road B)
 # 6 cars can have the 2nd best outcome (Road A and C)
 # and so on

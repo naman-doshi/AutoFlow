@@ -45,3 +45,7 @@ Includes sample, and example code, to demonstrate the functionality of the city 
 This is the main program — it includes our A\* variant, which is used to find the optimal path for each vehicle. It includes definitions for a landscape and several vehicles, which can be modified at the end of the code.
 
 TO RUN: Execute the code, and it will print each vehicle's optimal path to the terminal.
+
+## Resolving Errors
+
+All code has been tested and is highly unlikely to produce any errors at runtime, although if you encounter any, please check whether any custom parameters you have modified (e.g. traffic light interval) is an invalid value — for example, a negative number is clearly impossible, as well as 0.
