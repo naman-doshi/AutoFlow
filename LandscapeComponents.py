@@ -3,19 +3,35 @@ This script contains all of the environment object definitions required for virt
 
 Landscape component hierarchy:
 - Landscape
-    - Landplots
-    - Intersections (including traffic lights)
+    - LandPlots
+    - Intersections (including traffic light components)
     - Roads
 
-An original algorithm for generating random landscapes is included.
+An original algorithm for generating random landscapes is included. Below is the outline:
+1. An empty cell matrix is gradually populated with rectangles that represent land plots
+2. Roads and intersections are formed on the perimeter of every distinct land plot
+3. All roads and intersections are joined together to form a connected road network
+
+A landscape matrix describing the generated landscape is produced, as well as a directed graph representation
+of the road network that the Autoflow algorithm operates on in order to perform its multi-agent path searches.
+
+Three global constants (static variables) are defined:
+- CELL_SIZE_METRES: real scaling of each cell in metres
+- VEHICLE_LENGTH_METRES: how much space does each vehicle need in their lane
+- ACTIVE_LANDSCAPE: global reference to the currently used landscape
 """
 
 
 #================ IMPORTS ================
-from collections import defaultdict
-from random import randint
+from collections import defaultdict, deque
+from random import randint, shuffle
 from copy import deepcopy
-import math
+#=========================================
+
+#=============== CONSTANTS ===============
+CELL_SIZE_METRES: int = 20
+VEHICLE_LENGTH_METRES: int = 5
+ACTIVE_LANDSCAPE: 'Landscape' = None
 #=========================================
 
 
@@ -53,11 +69,13 @@ class LandPlot:
 class Intersection:
 
     """
-    A intersection is a point where two or more roads cross.
-    An intersection is spawned at all four corners of a land plot.
+    An intersection is a point where two or more roads cross.
+    If three or more roads cross, a traffic light is spawned with a random signal pattern.
+
+    Spawned at all four corners of a land plot.
     The coordinate (xPos, yPos) must be unique for each intersection.
 
-    Each intersection also contains a neighbours list that points to all its adjacent neighbours (up to four)
+    Each intersection also contains a neighbours list that points to all its adjacent neighbours (up to four).
     """
 
     def __init__(self, xPos: float, yPos: float) -> None:
@@ -69,8 +87,92 @@ class Intersection:
         # Initiate neighbour references
         self.neighbours: list[Intersection] = []
 
+        # Traffic light info
+        self.trafficLightPattern: list[int] = None
+        self.trafficLightDuration: int = 5 # how long each phase lasts, in seconds
+
+        # Pseudo roads for joining roads at an intersection
+        self.intersectionPathways: dict[Intersection, dict[Intersection, Road]] = defaultdict(dict)
+        # Maps (intersection where the from-road starts) to (intersection where the to-road ends)
+
     def coordinates(self) -> tuple[int, int]:
         return (self.xPos, self.yPos)
+    
+    def create_traffic_light(self) -> None:
+        """
+        Creates a random traffic signal pattern based on self.neighbours.
+
+        The pattern is represented by a list where:
+        - the index of the list is the modulus time i.e. current time % number of roads at this intersection
+        - the value at that index is the index of the road which starts at self.neighbours[value]
+
+        For example, self.neighbours[self.trafficLightPattern[1]] yields the intersection from where
+        the road that gets the green light at every 2nd phase of the traffic light pattern starts.
+
+        A pseudo road between every connectable pair of road joined at the intersection is also created,
+        i.e. there will be 6 pseudo roads for a three way intersection, and 12 for a four way intersection.
+        NOTE: U turns are NOT supported.
+
+        Pseudo roads are stored via self.intersectionPathways, which maps the intersection from where
+        the road that gets the green light starts to the intersection to to where the next road goes/ends.
+        This ensures that the mappings are unique.
+        """
+
+        roadCount = len(self.neighbours)
+
+        if roadCount < 3: # no traffic lights needed
+            return
+        
+        # Create random green light order
+        self.trafficLightPattern = [i for i in range(roadCount)]
+        shuffle(self.trafficLightPattern) # randomise green light order
+
+        # randomise phase duration between 5-15 seconds
+        self.trafficLightDuration = randint(5, 15) 
+
+        # Create virtual pathways
+        for from_intersection in self.neighbours:
+            for to_intersection in self.neighbours:
+                if to_intersection.coordinates() != from_intersection.coordinates():
+
+                    pseudoPathway = Road(self.coordinates(), self.coordinates())
+
+                    # Set the starting and ending positions of the virtual pathway
+                    pseudoPathway.startPosReal = ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].endPosReal
+                    pseudoPathway.endPosReal = ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].startPosReal
+
+                    # Calculate real length and direction of the virtual pathway
+                    if (
+                        ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction != 
+                        ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].direction
+                    ): # a turn is required
+                        pseudoPathway.length = (
+                            (pseudoPathway.startPosReal[0]-pseudoPathway.endPosReal[0])**2 +
+                            (pseudoPathway.startPosReal[1]-pseudoPathway.endPosReal[1])**2
+                        )**0.5
+                        pseudoPathway.direction = (
+                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction +
+                            ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].direction
+                        ) # simply join the directions e.g. north road to east road => NE
+                    else: # go straight, no turn required
+                        pseudoPathway.length = CELL_SIZE_METRES
+                        pseudoPathway.direction = (
+                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction
+                        ) # same direction
+
+                    # Asign speed limit of the virtual pathway
+                    pseudoPathway.set_speed_limit(
+                        (
+                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].speedLimit +
+                            ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].speedLimit
+                        ) / 2
+                    ) # set speed limit of pathway to the average of the two connecting roads
+
+                    # Calculate real traversal time and max vehicle count
+                    pseudoPathway.calculate_traversal_time()
+                    pseudoPathway.calculate_max_vehicle_count()
+
+                    self.intersectionPathways[from_intersection][to_intersection] = pseudoPathway           
 
     def __hash__(self) -> int:
         return hash((self.xPos, self.yPos))
@@ -84,10 +186,12 @@ class Road:
 
     Each road has the following properties:
     - Starting coordinate and ending coordinate
+    - Length in metres
     - Speed limit in km/h
 
-    Length is simply the number of tiles the road spans over plus one.
-    The plus one comes from the fact that the road starts and ends at the centre of two coordinates.
+    The road ALWAYS heads towards the ending coordinate.
+    Length is simply the number of tiles the road spans over multiplied by the cell size constant.
+    One is subtracted due to the fact that the road starts and ends at the centre of two intersections.
     """
 
     def __init__(self, start: tuple[int, int], end: tuple[int, int]) -> None:
@@ -96,13 +200,91 @@ class Road:
         self.start = start
         self.end = end
 
-        # Set length and speed limit
-        self.length = abs(end[0] - start[0]) + abs(end[1] - start[1])
+        # Set direction as NESW
+        self.set_direction()
+
+        # Initiate real starting & ending positions
+        self.startPosReal = (
+            (start[0] + 0.5) * CELL_SIZE_METRES,
+            (start[1] + 0.5) * CELL_SIZE_METRES,
+        )
+        self.endPosReal = (
+            (end[0] + 0.5) * CELL_SIZE_METRES,
+            (end[1] + 0.5) * CELL_SIZE_METRES,
+        )
+
+        # Adjust real starting & ending positions according to direction
+        if self.direction == "N":
+            self.startPosReal = (self.startPosReal[0] + CELL_SIZE_METRES/4, self.startPosReal[1] + CELL_SIZE_METRES/2)
+            self.endPosReal = (self.endPosReal[0] + CELL_SIZE_METRES/4, self.endPosReal[1] - CELL_SIZE_METRES/2)
+        elif self.direction == "S":
+            self.startPosReal = (self.startPosReal[0] - CELL_SIZE_METRES/4, self.startPosReal[1] - CELL_SIZE_METRES/2)
+            self.endPosReal = (self.endPosReal[0] - CELL_SIZE_METRES/4, self.endPosReal[1] + CELL_SIZE_METRES/2)
+        elif self.direction == "E":
+            self.startPosReal = (self.startPosReal[0] + CELL_SIZE_METRES/2, self.startPosReal[1] - CELL_SIZE_METRES/4)
+            self.endPosReal = (self.endPosReal[0] - CELL_SIZE_METRES/2, self.endPosReal[1] - CELL_SIZE_METRES/4)
+        elif self.direction == "W":
+            self.startPosReal = (self.startPosReal[0] - CELL_SIZE_METRES/2, self.startPosReal[1] + CELL_SIZE_METRES/4)
+            self.endPosReal = (self.endPosReal[0] + CELL_SIZE_METRES/2, self.endPosReal[1] + CELL_SIZE_METRES/4)
+
+        # Set real length and speed limit
+        self.cellSpan = ((abs(end[0] - start[0]) + abs(end[1] - start[1])) - 1)
+        self.length = self.cellSpan * CELL_SIZE_METRES
         self.set_speed_limit()
+
+        # Calculate traversal time in seconds i.e. how many seconds does it take to traverse this road
+        self.calculate_traversal_time()
+
+        # Initialise vehicle stack, which would store a list of Vehicles
+        self.vehicleStack = deque()
+        # NOTE: At least one vehicle would be allowed on a road, to handle two adjacent intersections
+
+        # Calculate the maximum number of vehicles that can be on this road at the same time
+        self.calculate_max_vehicle_count()
+
+        # Create a normalised position table for each coordinate along this road
+        self.positionTable: dict[tuple[int, int], float] = {}
+
+        # Compute position table
+        i = 1
+        if self.direction == "N":
+            for yCoord in range(start[1] + 1, end[1]):
+                self.positionTable[(start[0], yCoord)] = 1 / self.cellSpan * i
+                i += 1
+        elif self.direction == "S":
+            for yCoord in range(start[1] - 1, end[1], -1):
+                self.positionTable[(start[0], yCoord)] = 1 / self.cellSpan * i
+                i += 1
+        elif self.direction == "E":
+            for xCoord in range(start[0] + 1, end[0]):
+                self.positionTable[(xCoord, start[1])] = 1 / self.cellSpan * i
+                i += 1
+        elif self.direction == "W":
+            for xCoord in range(start[0] - 1, end[0], -1):
+                self.positionTable[(xCoord, start[1])] = 1 / self.cellSpan * i
+                i += 1
+
+    def set_direction(self):
+        if self.start[0] == self.end[0]: # vertical road
+            if self.start[1] < self.end[1]: 
+                self.direction = "N" # heading north
+            else: 
+                self.direction = "S" # heading south
+        else: # horizontal road
+            if self.start[0] < self.end[0]: 
+                self.direction = "E" # heading east
+            else: 
+                self.direction = "W" # heading west
 
     # this method should be overwritten by subclasses of road, e.g. highway => 120km/h
     def set_speed_limit(self, speedlimit: float = 60) -> None: 
         self.speedLimit = speedlimit
+
+    def calculate_traversal_time(self) -> None: # calculates traversal time in seconds
+        self.traversalTime = self.length / (self.speedLimit * 1000 / 3600)
+
+    def calculate_max_vehicle_count(self) -> None: # calculates the maximum number of cars that can physically fit
+        self.maxVehicleCount = max(1, self.length // VEHICLE_LENGTH_METRES)
 
 
 class LandPlotDescriptor:
@@ -153,41 +335,45 @@ class Landscape:
         # Initiate component references
         self.reset_landscape()
 
-    def get_neighbors(self, node):
-        """
-        Get neighboring cells of a given node for pathfinding.
-        """
-        x, y = node
-        neighbors = []
+        # Set newly created landscape to global reference
+        global ACTIVE_LANDSCAPE
+        ACTIVE_LANDSCAPE = self
 
-        # Define possible movement directions (up, down, left, right)
-        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    # def get_neighbors(self, node):
+    #     """
+    #     Get neighboring cells of a given node for pathfinding.
+    #     """
+    #     x, y = node
+    #     neighbors = []
 
-        for dx, dy in directions:
-            new_x, new_y = x + dx, y + dy
+    #     # Define possible movement directions (up, down, left, right)
+    #     directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
-            # Check if the new coordinates are within the landscape bounds
-            if 0 <= new_x < self.xSize and 0 <= new_y < self.ySize:
-                neighbors.append((new_x, new_y))
+    #     for dx, dy in directions:
+    #         new_x, new_y = x + dx, y + dy
 
-        return neighbors
+    #         # Check if the new coordinates are within the landscape bounds
+    #         if 0 <= new_x < self.xSize and 0 <= new_y < self.ySize:
+    #             neighbors.append((new_x, new_y))
+
+    #     return neighbors
     
-    def get_cost(self, current, neighbor):
-        """
-        Calculate the cost to move from the current cell to the neighbor cell.
-        In this example, you can use the Euclidean distance as the cost.
-        """
-        x1, y1 = current
-        x2, y2 = neighbor
+    # def get_cost(self, current, neighbor):
+    #     """
+    #     Calculate the cost to move from the current cell to the neighbor cell.
+    #     In this example, you can use the Euclidean distance as the cost.
+    #     """
+    #     x1, y1 = current
+    #     x2, y2 = neighbor
 
-        # Calculate Euclidean distance
-        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    #     # Calculate Euclidean distance
+    #     distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-        # Optionally, you can consider road speed limits or other factors
-        # For example, you can access road speed limits using self.roadmap
+    #     # Optionally, you can consider road speed limits or other factors
+    #     # For example, you can access road speed limits using self.roadmap
 
-        # For now, return the Euclidean distance as the cost
-        return distance
+    #     # For now, return the Euclidean distance as the cost
+    #     return distance
 
     def reset_landscape(self) -> None:
 
@@ -202,15 +388,15 @@ class Landscape:
 
         # Component references
         self.landPlots: list[LandPlot] = []
-        self.landMap: dict[tuple[int, int]: LandPlot] = defaultdict(lambda: None) # coord: land plot
+        self.landMap: dict[tuple[int, int], LandPlot] = {} # coord: land plot
         self.roads: list[Road] = []
-        self.intersections: dict[tuple[int, int]] = defaultdict(lambda: None) # coord: intersection
+        self.intersections: dict[tuple[int, int], Intersection] = {} # coord: intersection
 
         # Hashmap for accessing roads via intersection coordinates, e.g. self.roadmap[intersection1][intersection2]
-        self.roadmap: dict[tuple[int, int]: dict[tuple[int, int]: Road]] = defaultdict(dict)
+        self.roadmap: dict[tuple[int, int], dict[tuple[int, int], Road]] = defaultdict(dict)
 
         # Hashmap for accessing the road of a particular coordinate, first Road has smaller coords than second Road
-        self.coordToRoad: dict[tuple[int, int]: tuple[Road, Road]] = {} 
+        self.coordToRoad: dict[tuple[int, int], tuple[Road, Road]] = {} 
         # i.e. first Road goes west or south, second Road goes east or north
 
     @staticmethod
@@ -334,7 +520,7 @@ class Landscape:
                 roadWest, roadEast = road1, road2
 
             for xCoord in range(intersection1.xPos+1, intersection2.xPos):
-                self.coordToRoad[(intersection1.yPos, xCoord)] = (roadWest, roadEast)
+                self.coordToRoad[(xCoord, intersection1.yPos)] = (roadWest, roadEast)
 
         else: # vertically alligned
 
@@ -344,7 +530,7 @@ class Landscape:
                 roadSouth, roadNorth = road1, road2
 
             for yCoord in range(intersection1.yPos+1, intersection2.yPos):
-                self.coordToRoad[(yCoord, intersection1.xPos)] = (roadSouth, roadNorth)
+                self.coordToRoad[(intersection1.xPos, yCoord)] = (roadSouth, roadNorth)
 
     def label_intersections(self, pos1: tuple[int, int], pos2: tuple[int, int]):
         """
@@ -432,6 +618,10 @@ class Landscape:
             self.place_feature(feature, *valid_coordinates[randint(0, len(valid_coordinates)-1)])
 
         self.generate_landscape_matrix()
+
+        # Create traffic lights for every intersection with three or more roads
+        for intersection in self.intersections.values():
+            intersection.create_traffic_light()
 
 
     def generate_landscape_matrix(self) -> None:
