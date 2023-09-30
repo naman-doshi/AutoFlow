@@ -2,4 +2,4 @@
 
 call conda activate mini
 
-python ./AutoFlowBridge/Bridge.py
+python ./Bridge.py

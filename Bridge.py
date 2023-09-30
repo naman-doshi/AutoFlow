@@ -1,9 +1,10 @@
 import asyncio
 import dataclasses
-import random
 from websockets.exceptions import ConnectionClosedOK
 from websockets.server import WebSocketServerProtocol, serve
 import json
+
+from AutoFlowBridgeCompat import outputToBridge
 
 PORT = 8001
 
@@ -53,16 +54,31 @@ class InitMessage:
 
 
 @dataclasses.dataclass
+class Vector3Message:
+    x: float
+    y: float
+    z: float
+
+    def __dict__(self):
+        return {"x": self.x, "y": self.y, "z": self.z}
+
+    def serialize(self):
+        return json.dumps(self.__dict__())
+
+    @staticmethod
+    def deserialize(d):
+        return VehicleInitMessage(**d)
+
+
+@dataclasses.dataclass
 class VehicleUpdateMessage:
     id: int
-    position: tuple[float, float]
-    relativeTime: float
+    route: list[Vector3Message]
 
     def __dict__(self):
         return {
             "id": self.id,
-            "position": self.position,
-            "relativeTime": self.relativeTime,
+            "route": [r.__dict__() for r in self.route],
             "type": "VehicleUpdateMessage",
         }
 
@@ -109,23 +125,28 @@ class JSONUtils:
 
 async def handler(websocket: WebSocketServerProtocol):
     print("Session opened")
+    inp: tuple[
+        dict[int, tuple[float, float]], dict[int, list[tuple[float, float, float]]]
+    ] = outputToBridge()
+
+    # Initial scene
+    initMessages = []
+    for id, pos in inp[0].items():
+        initMessages.append(VehicleInitMessage(id, pos, 0))
     await websocket.send(
-        InitMessage(
-            ["HR", "HR", "HR", "HR"], 2, [VehicleInitMessage(0, (0, 0), 0)]
-        ).serialize()
+        InitMessage(["HR", "HR", "HR", "HR"], 2, initMessages).serialize()
     )
+    await asyncio.sleep(0.5)
+
+    # Updates
+    updateMessages = []
+    for id, route in inp[1].items():
+        currentCar = VehicleUpdateMessage(id, [Vector3Message(*node) for node in route])
+        updateMessages.append(currentCar)
+    await websocket.send(UpdateMessage(updateMessages).serialize())
 
     while True:
         try:
-            await websocket.send(
-                UpdateMessage(
-                    [
-                        VehicleUpdateMessage(
-                            0, (random.randrange(-20, 20), random.randrange(-20, 20)), 2
-                        )
-                    ]
-                ).serialize()
-            )
             await asyncio.sleep(1)
         except ConnectionClosedOK:
             print("Session closed")
