@@ -38,9 +38,9 @@ class Vehicle(ABC):
         self.position = position # float between 0 and 1 indicating linear position along a road
         road.vehicleStack.append(self)
 
-    def setDestination(self, road: Road, coord: tuple[int, int]):
+    def setDestination(self, road: Road, position: float):
         self.destinationRoad = road
-        self.destinationCoord = coord
+        self.destinationPosition = position
 
 
 class ConventionalVehicle(Vehicle):

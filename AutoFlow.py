@@ -12,12 +12,16 @@ The following input variables are used to describe the virtual simualtion:
 - LANDSCAPE_SIZE: a tuple describing the approximate dimensions of the landscape, see LandscapeComponents.py
 - VEHICLE_COUNT: the exact number of vehicle agents to be spawned into the simulation
 - AUTOFLOW_PERCENTAGE: the percentage of vehicle agents using AutoFlow
+
+TODO: Refactor vehicle agents into a separate simulation script for different result comparisons
 """
 
 
 #================ IMPORTS ================
 from LandscapeComponents import *
 from VehicleAgents import *
+
+from TestHelper import *
 
 from random import sample
 from heapq import *
@@ -30,7 +34,7 @@ LANDSCAPE_FEATURES = [
     (LandPlotDescriptor((2, 2), (1, 1)), 5)
 ]
 LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)
-VEHICLE_COUNT = 20
+VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 AUTOFLOW_PERCENTAGE = 50
 #=========================================
 
@@ -41,6 +45,33 @@ landscape.generate_new_landscape(desiredFeatures=LANDSCAPE_FEATURES, filler=LAND
 
 # There must be at least one road within the map area
 assert len(landscape.intersections) > 4
+
+# Check for overlapping roads
+for roadA in landscape.roads:
+    for roadB in landscape.roads:
+        if roadA != roadB:
+            if doIntersect(
+                Point(*roadA.startPosReal),
+                Point(*roadA.endPosReal),
+                Point(*roadB.startPosReal),
+                Point(*roadB.endPosReal)
+            ):
+                print(roadA.startPosReal, roadA.endPosReal)
+                print(roadB.startPosReal, roadB.endPosReal)
+                raise Exception("Roads overlap, this should not occur")
+
+# Compute average road speed for all roads within map area
+road_speeds = 0
+road_count = 0
+for road in landscape.roads:
+    if (
+        1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize or 
+        1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize
+    ):
+        road_speeds += road.speedLimit
+        road_count += 1
+AVERAGE_ROAD_SPEED = road_speeds / road_count
+AVERAGE_ROAD_SPEED_MPS = AVERAGE_ROAD_SPEED * 1000 / 3600
 
 # Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
 available_coordinates = [
@@ -62,6 +93,8 @@ assert VEHICLE_COUNT <= len(available_coordinates[0]) * 2
 
 # Array storing all vehicle agents
 vehicles: list[Vehicle] = []
+selfish_vehicles: list[Vehicle] = []
+autoflow_vehicles: list[Vehicle] = []
 
 # Determine EV distribution
 EV_percentage = randint(10, 20) # based on real world data
@@ -75,17 +108,23 @@ current_index = 0
 # Spawn EVs
 while current_index < EV_count:
     if current_index in marked_indexes:
-        vehicles.append(ElectricVehicle(useAutoFlow=True))
+        vehicle = ElectricVehicle(useAutoFlow=True)
+        autoflow_vehicles.append(vehicle)
     else:
-        vehicles.append(ElectricVehicle(useAutoFlow=False))
+        vehicle = ElectricVehicle(useAutoFlow=False)
+        selfish_vehicles.append(vehicle)
+    vehicles.append(vehicle)
     current_index += 1
 
 # Spawn conventional vehicles
 while current_index < VEHICLE_COUNT:
     if current_index in marked_indexes:
-        vehicles.append(ConventionalVehicle(useAutoFlow=True))
+        vehicle = ConventionalVehicle(useAutoFlow=True)
+        autoflow_vehicles.append(vehicle)
     else:
-        vehicles.append(ConventionalVehicle(useAutoFlow=False))
+        vehicle = ConventionalVehicle(useAutoFlow=False)
+        selfish_vehicles.append(vehicle)
+    vehicles.append(vehicle)
     current_index += 1
 
 # Assign random starting coordinates to all vehicles
@@ -133,15 +172,232 @@ for vehicle in vehicles:
     coord = available_coordinates[poolID][coordIndex]
     road = landscape.coordToRoad[coord][poolID]
 
-    vehicle.setDestination(road, coord) # set vehicle's destination location
+    vehicle.setDestination(road, road.positionTable[coord]) # set vehicle's destination location
 
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
+
+# ===============================================================================================
+
+# Helper functions
+
+def getRealPositionOnRoad(road: Road, position: float) -> tuple[float, float]:
+    """
+    Calculates the real 2D position given road and a normalised position.
+    """
+    if road.direction == "N":
+        return (road.startPosReal[0], road.startPosReal[1] + road.length * position)
+    elif road.direction == "S":
+        return (road.startPosReal[0], road.startPosReal[1] - road.length * position)
+    elif road.direction == "E":
+        return (road.startPosReal[0] + road.length * position, road.startPosReal[1])
+    elif road.direction == "W":
+        return (road.startPosReal[0] - road.length * position, road.startPosReal[1])
+    
+def euclideanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> float:
+    """
+    Calculates the euclidean distance between two positions.
+    The unit of measurement is metres.
+    """
+    return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
+
+# Main functions
+
+def computeRoutes():
+    """
+    Compute the routes for selfish vehicles first, then AutoFlow vehicles.
+    """
+    computeSelfishVehicleRoutes(selfish_vehicles)
+    computeAutoflowVehicleRoutes(autoflow_vehicles)
+
+def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
+    """
+    Selfish vehicles perform basic A* without awareness of other vehicles.
+    Path allocation is computed in no particular order.
+
+    Each node is a tuple that stores (fcost, hcost, gcost, road, position).
+    - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
+    - hcost: optimistic approximate time required to reach destination using AVERAGE_ROAD_SPEED
+    - gcost: cost so far i.e. time taken so far, represents the ABSOLUTE time
+
+    Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle)
+    """
+
+    routes: list[list[tuple[float, float, float]]] = []
+
+    for vehicle in selfish_vehicles:
+
+        tiebreaker = 0 # tiebreaker value for when all costs are equal
+
+        # Hashmap that maps each node to their fcost
+        node_fcost: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
+
+        # Hashmap that stores the previous node and RELATIVE time cost in seconds to the previous node
+        previous_node: dict[tuple[tuple[float, float], float], tuple[tuple[tuple[float, float], float], float]] = {}
+        # NOTE: normalised position is used to handle roads where startPosReal and endPosReal are equal
+        
+        # Calculate real destination position
+        destination_position = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+
+        # Nodes are the starting points of each road, can also be the starting point of the vehicle
+        open_nodes: list[float, float, float, Road, float] = [] # Open is a priority queue
+        closed_nodes = set() # Closed can just be a set
+
+        # Calculate the cost variables of the starting position
+        gcost = 0
+        hcost = euclideanDistance(
+            getRealPositionOnRoad(vehicle.road, vehicle.position), 
+            destination_position
+        ) / AVERAGE_ROAD_SPEED_MPS
+        fcost = gcost + hcost
+
+        # Add starting position of the vehicle to open_nodes
+        start_node = (fcost, hcost, gcost, tiebreaker, vehicle.road, vehicle.position)
+        tiebreaker += 1
+        heappush(open_nodes, start_node) 
+
+        while True: # loop until target point has been reached
+
+            if len(open_nodes) == 0:
+                raise Exception("Path does not exist")
+
+            # Explore the node with the lowest fcost (hcost is tiebreaker)
+            fcost, hcost, gcost, tiebreaker, road, position = heappop(open_nodes)
+            real_position = getRealPositionOnRoad(road, position)
+
+            # Add current to closed_nodes
+            closed_nodes.add((road, position))
+
+            # If destination is same as current position (by chance) then skip this vehicle
+            if road == vehicle.destinationRoad and position == vehicle.destinationPosition:
+                break
+
+            # If destination is on the same road in front of the current position then calculate single instruction
+            if road == vehicle.destinationRoad and position < vehicle.destinationPosition:
+                time_taken = euclideanDistance(
+                    real_position,
+                    destination_position
+                ) / road.speedLimit_MPS
+                previous_node[(destination_position, vehicle.destinationPosition)] = ((real_position, position), time_taken)
+                break
+
+            if (road, 1) in closed_nodes: # if current road is the starting road, skip
+                continue
+
+            # Otherwise, create instruction to move to the end of the road as there is no other choice
+            roadEndPosition: tuple[float, float] = road.endPosReal
+            time_taken = euclideanDistance(
+                real_position,
+                roadEndPosition
+            ) / road.speedLimit_MPS
+            previous_node[(roadEndPosition, 1)] = ((real_position, position), time_taken)
+
+            # Add road end to closed nodes
+            closed_nodes.add((road, 1))
+
+            # Update variables
+            position = 1
+            real_position = roadEndPosition
+            gcost += time_taken
+            hcost = euclideanDistance(
+                real_position, 
+                destination_position
+            ) / AVERAGE_ROAD_SPEED_MPS
+            fcost = gcost + hcost
+
+            # Store references to road intersection for easy reference
+            road_start_intersection: Intersection = landscape.intersections[road.start]
+            road_end_intersection: Intersection = landscape.intersections[road.end]
+
+            # Examine neighbours
+            for neighbour_intersection in road_end_intersection.neighbours:
+
+                # No U turns allowed
+                if neighbour_intersection == road_start_intersection:
+                    continue
+
+                # Store reference to neighbour road for easy reference
+                neighbour_road = landscape.roadmap[road_end_intersection.coordinates()][neighbour_intersection.coordinates()]
+                
+                # If neighbour is in closed, skip
+                if (neighbour_road, 0) in closed_nodes:
+                    continue
+                
+                # Initiate time cost of reaching neighbour node (ignoring the traffic light)
+                time_taken = road_end_intersection.intersectionPathways[road_start_intersection][neighbour_intersection].traversalTime
+
+                # Compute cost of reaching neighbour node (taking traffic light into account)
+                if len(road_end_intersection.neighbours) >= 3:
+                    current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
+                    if (
+                        (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
+                        > current_modulus_time
+                    ):
+                        waiting_time = (
+                            road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
+                            - current_modulus_time
+                        )
+                        if waiting_time > 0: # Case 1: current time is earlier in the cycle
+                            pass
+                        else: # Case 2: current time is within the green light duration, allow vehicle through
+                            waiting_time = 0
+                    else: # Case 3: current time is later in the cycle
+                        waiting_time = (
+                            len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
+                            - current_modulus_time 
+                            + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
+                        )
+                    time_taken += waiting_time # update time taken to reflect traffic light waiting times          
+
+                # Compute all cost values
+                neighbour_gcost = gcost + time_taken
+                neighbour_hcost = euclideanDistance(
+                    neighbour_road.startPosReal, 
+                    destination_position
+                ) / AVERAGE_ROAD_SPEED_MPS
+                neighbour_fcost = neighbour_gcost + neighbour_hcost
+
+                neighbour_node = (neighbour_fcost, neighbour_hcost, neighbour_gcost, tiebreaker, neighbour_road, 0)
+                tiebreaker += 1
+
+                # Push neighbour node into open list if fcost is smaller than the existing cost
+                if neighbour_fcost < node_fcost[(neighbour_road, 0)]:
+                    previous_node[(neighbour_road.startPosReal, 0)] = ((real_position, position), time_taken)
+                    heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
+
+        # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
+        route = [] 
+
+        # Create route using previous_node hashmap
+        current_real_position, current_position = destination_position, vehicle.destinationPosition
+        while (current_real_position, current_position) in previous_node:
+            node, relative_time_taken = previous_node[(current_real_position, current_position)]
+            # print(node)
+            # print((current_real_position, relative_time_taken))
+            if relative_time_taken > 0: # skip redundant instructions on roads with 0 length
+                route.append((current_real_position, relative_time_taken))
+            current_real_position, current_position = node
+
+        route.reverse()
+        print()
+        print(route)                
+        routes.append(route)
+
+    # for route in routes:
+    #     print(routes)
+
+def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle]):
+    pass
     
 
-for vehicle in vehicles:
+for vehicle in selfish_vehicles:
     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
-    print(vehicle.destinationCoord, vehicle.destinationRoad)
+    #print(vehicle.destinationPosition, vehicle.destinationRoad)
+    print(
+        getRealPositionOnRoad(vehicle.road, vehicle.position),
+        getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+    )
 # for road in landscape.roads:
 #     if len(road.vehicleStack) != 0:
 #         print([vehicle.position for vehicle in road.vehicleStack])
 print(VEHICLE_COUNT)
+computeRoutes()

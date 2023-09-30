@@ -91,6 +91,9 @@ class Intersection:
         self.trafficLightPattern: list[int] = None
         self.trafficLightDuration: int = 5 # how long each phase lasts, in seconds
 
+        # Lookup table for quickly accessing the when a particular road gets the green light
+        self.trafficLightLookup: dict[Intersection, int] = defaultdict(dict)
+
         # Pseudo roads for joining roads at an intersection
         self.intersectionPathways: dict[Intersection, dict[Intersection, Road]] = defaultdict(dict)
         # Maps (intersection where the from-road starts) to (intersection where the to-road ends)
@@ -120,15 +123,18 @@ class Intersection:
 
         roadCount = len(self.neighbours)
 
-        if roadCount < 3: # no traffic lights needed
-            return
+        if roadCount >= 3: # traffic lights are only needed for intersections with 3 or more roads
         
-        # Create random green light order
-        self.trafficLightPattern = [i for i in range(roadCount)]
-        shuffle(self.trafficLightPattern) # randomise green light order
+            # Create random green light order
+            self.trafficLightPattern = [i for i in range(roadCount)]
+            shuffle(self.trafficLightPattern) # randomise green light order
 
-        # randomise phase duration between 5-15 seconds
-        self.trafficLightDuration = randint(5, 15) 
+            # Create lookup table based on green light order
+            for i in range(roadCount):
+                self.trafficLightLookup[self.neighbours[self.trafficLightPattern[i]]] = i
+
+            # randomise phase duration between 5-15 seconds
+            self.trafficLightDuration = randint(5, 15) 
 
         # Create virtual pathways
         for from_intersection in self.neighbours:
@@ -246,7 +252,7 @@ class Road:
         self.positionTable: dict[tuple[int, int], float] = {}
 
         # Compute position table
-        i = 1
+        i = 0.5 # vehicles cannot start at the beginning or end of any road
         if self.direction == "N":
             for yCoord in range(start[1] + 1, end[1]):
                 self.positionTable[(start[0], yCoord)] = 1 / self.cellSpan * i
@@ -279,9 +285,10 @@ class Road:
     # this method should be overwritten by subclasses of road, e.g. highway => 120km/h
     def set_speed_limit(self, speedlimit: float = 60) -> None: 
         self.speedLimit = speedlimit
+        self.speedLimit_MPS = speedlimit * 1000 / 3600
 
     def calculate_traversal_time(self) -> None: # calculates traversal time in seconds
-        self.traversalTime = self.length / (self.speedLimit * 1000 / 3600)
+        self.traversalTime = self.length / self.speedLimit_MPS
 
     def calculate_max_vehicle_count(self) -> None: # calculates the maximum number of cars that can physically fit
         self.maxVehicleCount = max(1, self.length // VEHICLE_LENGTH_METRES)
@@ -798,32 +805,36 @@ class Landscape:
 
             for xCoord in range(xPos+1, self.xSize+2): # search for east neighbour
                 if self.landscapeMatrix[yPos][xCoord] == "IS":
-                    self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
-                    stack.append((xCoord, yPos))
+                    if (xCoord, yPos) not in visited:
+                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
+                        stack.append((xCoord, yPos))
                     break
                 elif self.landscapeMatrix[yPos][xCoord] == "LP":
                     break
 
             for xCoord in range(xPos-1, -1, -1): # search for west neighbour
                 if self.landscapeMatrix[yPos][xCoord] == "IS":
-                    self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
-                    stack.append((xCoord, yPos))
+                    if (xCoord, yPos) not in visited:
+                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
+                        stack.append((xCoord, yPos))
                     break
                 elif self.landscapeMatrix[yPos][xCoord] == "LP":
                     break
 
             for yCoord in range(yPos+1, self.ySize+2): # search for north neighbour
                 if self.landscapeMatrix[yCoord][xPos] == "IS":
-                    self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
-                    stack.append((xPos, yCoord))
+                    if (xPos, yCoord) not in visited:
+                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
+                        stack.append((xPos, yCoord))
                     break
                 elif self.landscapeMatrix[yCoord][xPos] == "LP":
                     break
 
             for yCoord in range(yPos-1, -1, -1): # search for south neighbour
-                if self.landscapeMatrix[yCoord][xPos] == "IS":
-                    self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
-                    stack.append((xPos, yCoord))
+                if self.landscapeMatrix[yCoord][xPos] == "IS" and (xPos, yCoord):
+                    if (xPos, yCoord) not in visited:
+                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
+                        stack.append((xPos, yCoord))
                     break
                 elif self.landscapeMatrix[yCoord][xPos] == "LP":
                     break
