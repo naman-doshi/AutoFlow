@@ -222,7 +222,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
     Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle)
     """
 
-    routes: list[list[tuple[float, float, float]]] = []
+    routes: list[list[tuple[float, float]]] = []
 
     for vehicle in selfish_vehicles:
 
@@ -374,7 +374,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
             # print(node)
             # print((current_real_position, relative_time_taken))
             if relative_time_taken > 0: # skip redundant instructions on roads with 0 length
-                route.append((current_real_position, relative_time_taken))
+                route.append(current_real_position)
             current_real_position, current_position = node
 
         route.reverse()
