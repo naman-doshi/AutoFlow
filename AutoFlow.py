@@ -118,7 +118,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                 raise Exception("Path does not exist")
 
             # Explore the node with the lowest fcost (hcost is tiebreaker)
-            fcost, hcost, gcost, tiebreaker, road, position = heappop(open_nodes)
+            fcost, hcost, gcost, tb, road, position = heappop(open_nodes)
             real_position = getRealPositionOnRoad(road, position)
 
             # Add current to closed_nodes
@@ -323,7 +323,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                 raise Exception("Path does not exist")
 
             # Explore the node with the lowest fcost (hcost is tiebreaker)
-            fcost, hcost, gcost, tiebreaker, road, position = heappop(open_nodes)
+            fcost, hcost, gcost, tb, road, position = heappop(open_nodes)
             real_position = getRealPositionOnRoad(road, position)
 
             # Add current to closed_nodes
