@@ -137,8 +137,8 @@ class Intersection:
             for i in range(roadCount):
                 self.trafficLightLookup[self.neighbours[self.trafficLightPattern[i]]] = i
 
-            # Randomise phase duration between 5-15 seconds
-            self.trafficLightDuration = randint(5, 15) 
+            # Randomise phase duration between 2-5 seconds
+            self.trafficLightDuration = randint(2, 5) 
 
             # Calculate traffic passthrough rate for every road
             for intersection in self.neighbours:
@@ -298,8 +298,8 @@ class Road:
 
     # this method should be overwritten by subclasses of road, e.g. highway => 120km/h
     def set_speed_limit(self, speedlimit: float = 60) -> None: 
-        self.speedLimit = speedlimit
-        self.speedLimit_MPS = speedlimit * 1000 / 3600
+        self.speedLimit = speedlimit / 4
+        self.speedLimit_MPS = speedlimit * 1000 / 3600 / 4
 
     def calculate_traversal_time(self) -> None: # calculates traversal time in seconds
         self.traversalTime = self.length / self.speedLimit_MPS

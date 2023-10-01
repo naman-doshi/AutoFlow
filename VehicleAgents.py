@@ -42,6 +42,13 @@ class Vehicle(ABC):
         self.destinationRoad = road
         self.destinationPosition = position
 
+    def __deepcopy__(self, memo):
+        agentCopy: Vehicle = self.__class__()
+        agentCopy.setLocation(self.road, self.position)
+        agentCopy.setDestination(self.destinationRoad, self.destinationPosition)
+        agentCopy.routingSystem = self.routingSystem
+        return agentCopy
+
 
 class ConventionalVehicle(Vehicle):
 
