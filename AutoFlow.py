@@ -87,9 +87,9 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
         # Hashmap that maps each node to their fcost
         node_fcost: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
 
-        # Hashmap that stores the previous node of each node
-        previous_node: dict[tuple[tuple[float, float], float], tuple[tuple[float, float], float]] = {}        
-        # previous_node[(real position, normalised position)] => (real position, normalised position)
+        # Hashmap that stores the previous node's roadID and normalised position of each node
+        previous_node: dict[tuple[int, float], tuple[int, int]] = {}        
+        # previous_node[(roadID, normalised position)] => (roadID, normalised position)
         # NOTE: normalised position is used to handle roads where startPosReal and endPosReal are equal
         
         # Calculate real destination position
@@ -130,7 +130,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
             # If destination is on the same road in front of the current position then calculate single instruction
             if road == vehicle.destinationRoad and position < vehicle.destinationPosition:
-                previous_node[(destination_position, vehicle.destinationPosition)] = (real_position, position)
+                previous_node[(vehicle.destinationRoad.roadID, vehicle.destinationPosition)] = (road.roadID, position)
                 break
 
             if (road, 1) in closed_nodes: # if current road is the starting road, skip
@@ -173,7 +173,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                 time_taken += waiting_time # update time taken to reflect traffic light waiting time
 
             # Set previous node of road end node to road start node
-            previous_node[(roadEndPosition, 1)] = (real_position, position)
+            previous_node[(road.roadID, 1)] = (road.roadID, position)
 
             # Add road end to closed nodes
             closed_nodes.add((road, 1))
@@ -220,27 +220,26 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                 # Push neighbour node into open list if fcost is smaller than the existing cost
                 if neighbour_fcost < node_fcost[(neighbour_road, 0)]:
                     node_fcost[(neighbour_road, 0)] = neighbour_fcost
-                    previous_node[(neighbour_road.startPosReal, 0)] = (real_position, position)
+                    previous_node[(neighbour_road.roadID, 0)] = (road.roadID, position)
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
         # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
         route = [] 
 
         # Initiate traceback variables
-        current_real_position, current_position = destination_position, vehicle.destinationPosition
+        current_roadID, current_position = vehicle.destinationRoad.roadID, vehicle.destinationPosition
 
         # Create route using previous_node hashmap
-        while (current_real_position, current_position) in previous_node:
+        while (current_roadID, current_position) in previous_node:
 
             # Unpack previous node information
-            previous_real_position, previous_position = previous_node[(current_real_position, current_position)]
+            previous_roadID, previous_position = previous_node[(current_roadID, current_position)]
             
             # Append new instruction
-            if previous_real_position != current_real_position: # skip redundant instructions on roads with 0 length
-                route.append(current_real_position)
+            route.append((getRealPositionOnRoad(landscape.roads[current_roadID], current_position), current_roadID))
 
             # Update traceback variables
-            current_real_position, current_position = previous_real_position, previous_position
+            current_roadID, current_position = previous_roadID, previous_position
 
         # Reverse instructions to obtain chronological order
         route.reverse()
@@ -290,10 +289,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         node_fcost: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
 
         # Hashmap that stores the previous node, road index in landscape.roads and ABSOLUTE time cost of each node
-        previous_node: dict[
-            tuple[tuple[float, float], float], tuple[tuple[tuple[float, float], float], int, float]
-        ] = {}
-        # previous_node[(real position, normalised position)] => ((real position, normalised position), roadID, absolute time)
+        previous_node: dict[tuple[int, float], tuple[int, float, float]] = {}
+        # previous_node[(roadID, normalised position)] => (roadID, normalised position, absolute time)
         # NOTE: normalised position is used to handle roads where startPosReal and endPosReal are equal
         # NOTE: ABSOLUTE time is needed to prevent time desync within reservation table
         
@@ -339,10 +336,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                     real_position,
                     destination_position
                 ) / road.speedLimit_MPS # fastest time estimation from start of the road to the destination
-                previous_node[(destination_position, vehicle.destinationPosition)] = (
-                    (real_position, position),
-                    road.roadID,
-                    gcost + time_taken 
+                previous_node[(vehicle.destinationRoad.roadID, vehicle.destinationPosition)] = (
+                    road.roadID, position, gcost + time_taken
                 )
                 break
 
@@ -403,10 +398,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                 # ))
 
             # Set previous node of road end node to road start node
-            previous_node[(roadEndPosition, 1)] = (
-                (real_position, position),
-                road.roadID,
-                gcost + time_taken
+            previous_node[(road.roadID, 1)] = (
+                road.roadID, position, gcost + time_taken
             )
 
             # Add road end to closed nodes
@@ -454,10 +447,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                 # Push neighbour node into open list if fcost is smaller than the existing cost
                 if neighbour_fcost < node_fcost[(neighbour_road, 0)]:
                     node_fcost[(neighbour_road, 0)] = neighbour_fcost
-                    previous_node[(neighbour_road.startPosReal, 0)] = (
-                        (real_position, position),
-                        neighbour_road.roadID,
-                        -1 # skipped to avoid double marking and time desync in reservation table
+                    previous_node[(neighbour_road.roadID, 0)] = (
+                        road.roadID, position, -1 # skipped to avoid double marking in reservation table
                     )
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
@@ -465,31 +456,28 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         route = [] 
 
         # Initiate traceback variables
-        current_real_position, current_position = destination_position, vehicle.destinationPosition
+        current_roadID, current_position = vehicle.destinationRoad.roadID, vehicle.destinationPosition
         previousTimestamp = -1
 
         # Create route using previous_node hashmap
-        while (current_real_position, current_position) in previous_node:
+        while (current_roadID, current_position) in previous_node:
 
             # Unpack previous node information
-            node, roadID, timestamp = previous_node[(current_real_position, current_position)]
-            previous_real_position, previous_position = node
-
+            previous_roadID, previous_position, timestamp = previous_node[(current_roadID, current_position)]
+            
             # Append new instruction
-            if previous_real_position != current_real_position: # skip redundant instructions on roads with 0 length
-                route.append(current_real_position)
+            route.append((getRealPositionOnRoad(landscape.roads[current_roadID], current_position), current_roadID))
 
             # Update congestion status of used road during the usage time period
             if previousTimestamp == -1:
                 previousTimestamp = timestamp
             elif timestamp != -1: # skip virtual pathways for reservation table marking
                 for i in range(int(timestamp), ceil(previousTimestamp)):
-                    #print(i)
-                    reservation_table[roadID][i] += 1                
+                    reservation_table[previous_roadID][i] += 1                
                 previousTimestamp = timestamp # update previous timestamp
 
             # Update traceback variables
-            current_real_position, current_position = previous_real_position, previous_position
+            current_roadID, current_position = previous_roadID, previous_position
 
         # Reverse instructions to obtain chronological order
         route.reverse()
@@ -500,5 +488,6 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         routes.append(route)
 
     # for route in routes:
-    #     print(routes)
+    #     print(route)
+    
     return routes

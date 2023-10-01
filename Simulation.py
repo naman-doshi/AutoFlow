@@ -18,7 +18,7 @@ from copy import deepcopy
 #=========================================
 
 #================ INPUTS =================
-LANDSCAPE_SIZE = (20, 20)
+LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
     (LandPlotDescriptor((2, 2), (1, 1)), 5)
 ]
@@ -259,22 +259,24 @@ print()
 
 # Function for calculating total distance of a route
 def calculate_total_distance(route: list[tuple[float, float]]):
+    if route == []:
+        return 0
     total_distance = 0
-    current_pos = route[0]
+    current_pos = route[0][0]
     for i in range(1, len(route)):
-        total_distance += euclideanDistance(current_pos, route[i])
-        current_pos = route[i]
+        total_distance += euclideanDistance(current_pos, route[i][0])
+        current_pos = route[i][0]
     return total_distance
 
 # Compare routes
-# for i in range(VEHICLE_COUNT):
-#     if routes1[i] != routes2[i]:
-#         print(f"""
-# Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
-# Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
-#         )
-#         print(routes1[i])
-#         print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
-#         print(routes2[i])
-#         print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
-#         print()
+for i in range(VEHICLE_COUNT):
+    if routes1[i] != routes2[i]:
+        print(f"""
+Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
+Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
+        )
+        print(routes1[i])
+        print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
+        print(routes2[i])
+        print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
+        print()
