@@ -25,6 +25,7 @@ from TestHelper import *
 
 from random import sample
 from heapq import *
+from math import ceil
 #=========================================
 
 
@@ -206,7 +207,7 @@ def computeRoutes():
     """
     Compute the routes for selfish vehicles first, then AutoFlow vehicles.
     """
-    computeSelfishVehicleRoutes(selfish_vehicles)
+    #computeSelfishVehicleRoutes(selfish_vehicles)
     computeAutoflowVehicleRoutes(autoflow_vehicles)
 
 def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
@@ -214,12 +215,14 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
     Selfish vehicles perform basic A* without awareness of other vehicles.
     Path allocation is computed in no particular order.
 
-    Each node is a tuple that stores (fcost, hcost, gcost, road, position).
+    Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
     - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
     - hcost: optimistic approximate time required to reach destination using AVERAGE_ROAD_SPEED
     - gcost: cost so far i.e. time taken so far, represents the ABSOLUTE time
+    - tiebreaker: an unique integer used as a tiebreaker when all costs are equal
 
-    Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle)
+    Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle).
+    The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
 
     routes: list[list[tuple[float, float]]] = []
@@ -231,8 +234,9 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
         # Hashmap that maps each node to their fcost
         node_fcost: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
 
-        # Hashmap that stores the previous node and RELATIVE time cost in seconds to the previous node
-        previous_node: dict[tuple[tuple[float, float], float], tuple[tuple[tuple[float, float], float], float]] = {}
+        # Hashmap that stores the previous node of each node
+        previous_node: dict[tuple[tuple[float, float], float], tuple[tuple[float, float], float]] = {}        
+        # previous_node[(real position, normalised position)] => (real position, normalised position)
         # NOTE: normalised position is used to handle roads where startPosReal and endPosReal are equal
         
         # Calculate real destination position
@@ -240,7 +244,211 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
 
         # Nodes are the starting points of each road, can also be the starting point of the vehicle
         open_nodes: list[float, float, float, Road, float] = [] # Open is a priority queue
-        closed_nodes = set() # Closed can just be a set
+        closed_nodes: set[tuple(Road, float)] = set() # Closed can just be a set
+
+        # Calculate the cost variables of the starting position
+        gcost = 0
+        hcost = euclideanDistance(
+            getRealPositionOnRoad(vehicle.road, vehicle.position), 
+            destination_position
+        ) / AVERAGE_ROAD_SPEED_MPS
+        fcost = gcost + hcost
+
+        # Add starting position of the vehicle to open_nodes
+        start_node = (fcost, hcost, gcost, tiebreaker, vehicle.road, vehicle.position)
+        tiebreaker += 1
+        heappush(open_nodes, start_node) 
+
+        while True: # loop until target point has been reached
+
+            if len(open_nodes) == 0:
+                raise Exception("Path does not exist")
+
+            # Explore the node with the lowest fcost (hcost is tiebreaker)
+            fcost, hcost, gcost, tiebreaker, road, position = heappop(open_nodes)
+            real_position = getRealPositionOnRoad(road, position)
+
+            # Add current to closed_nodes
+            closed_nodes.add((road, position))
+
+            # If destination is same as current position (by chance) then skip this vehicle
+            if road == vehicle.destinationRoad and position == vehicle.destinationPosition:
+                break
+
+            # If destination is on the same road in front of the current position then calculate single instruction
+            if road == vehicle.destinationRoad and position < vehicle.destinationPosition:
+                previous_node[(destination_position, vehicle.destinationPosition)] = (real_position, position)
+                break
+
+            if (road, 1) in closed_nodes: # if current road is the starting road, skip
+                continue
+
+            # Otherwise, create instruction to move to the end of the road as there is no other choice
+            roadEndPosition: tuple[float, float] = road.endPosReal
+
+            # Store references to road intersection for easy reference
+            road_start_intersection: Intersection = landscape.intersections[road.start]
+            road_end_intersection: Intersection = landscape.intersections[road.end]
+
+            # Initiate time cost of reaching road end node (ignoring traffic lights)
+            time_taken = euclideanDistance(
+                real_position,
+                roadEndPosition
+            ) / road.speedLimit_MPS
+
+            # Compute waiting time until the next green light
+            if len(road_end_intersection.neighbours) >= 3:
+                current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
+                if (
+                    (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
+                    > current_modulus_time
+                ):
+                    waiting_time = (
+                        road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
+                        - current_modulus_time
+                    )
+                    if waiting_time > 0: # Case 1: current time is earlier in the cycle
+                        pass
+                    else: # Case 2: current time is within the green light duration, allow vehicle through
+                        waiting_time = 0
+                else: # Case 3: current time is later in the cycle
+                    waiting_time = (
+                        len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
+                        - current_modulus_time 
+                        + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
+                    )
+                time_taken += waiting_time # update time taken to reflect traffic light waiting time
+
+            # Set previous node of road end node to road start node
+            previous_node[(roadEndPosition, 1)] = (real_position, position)
+
+            # Add road end to closed nodes
+            closed_nodes.add((road, 1))
+
+            # Update variables
+            position = 1
+            real_position = roadEndPosition
+            gcost += time_taken
+            hcost = euclideanDistance(
+                real_position, 
+                destination_position
+            ) / AVERAGE_ROAD_SPEED_MPS
+            fcost = gcost + hcost
+
+            # Examine neighbours
+            for neighbour_intersection in road_end_intersection.neighbours:
+
+                # No U turns allowed
+                if neighbour_intersection == road_start_intersection:
+                    continue
+
+                # Store reference to neighbour road for easy reference
+                neighbour_road = landscape.roadmap[road_end_intersection.coordinates()][neighbour_intersection.coordinates()]
+                
+                # If neighbour is in closed, skip
+                if (neighbour_road, 0) in closed_nodes:
+                    continue
+                
+                # Time cost of reaching neighbour node is the traversal time of virtual pathway
+                time_taken = road_end_intersection.intersectionPathways[road_start_intersection][neighbour_intersection].traversalTime     
+                # NOTE: traffic light waiting time is already accounted for by the gcost of reaching road end node
+
+                # Compute all cost values
+                neighbour_gcost = gcost + time_taken
+                neighbour_hcost = euclideanDistance(
+                    neighbour_road.startPosReal, 
+                    destination_position
+                ) / AVERAGE_ROAD_SPEED_MPS
+                neighbour_fcost = neighbour_gcost + neighbour_hcost
+
+                neighbour_node = (neighbour_fcost, neighbour_hcost, neighbour_gcost, tiebreaker, neighbour_road, 0)
+                tiebreaker += 1
+
+                # Push neighbour node into open list if fcost is smaller than the existing cost
+                if neighbour_fcost < node_fcost[(neighbour_road, 0)]:
+                    node_fcost[(neighbour_road, 0)] = neighbour_fcost
+                    previous_node[(neighbour_road.startPosReal, 0)] = (real_position, position)
+                    heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
+
+        # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
+        route = [] 
+
+        # Initiate traceback variables
+        current_real_position, current_position = destination_position, vehicle.destinationPosition
+
+        # Create route using previous_node hashmap
+        while (current_real_position, current_position) in previous_node:
+
+            # Unpack previous node information
+            previous_real_position, previous_position = previous_node[(current_real_position, current_position)]
+            
+            # Append new instruction
+            if previous_real_position != current_real_position: # skip redundant instructions on roads with 0 length
+                route.append(current_real_position)
+
+            # Update traceback variables
+            current_real_position, current_position = previous_real_position, previous_position
+
+        # Reverse instructions to obtain chronological order
+        route.reverse()
+        print()
+        print(route)
+
+        # Store computed route in routes list            
+        routes.append(route)
+
+    # for route in routes:
+    #     print(routes)
+
+def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle]):
+    """
+    AutoFlow vehicles perform cooperative A* with awareness of other AutoFlow vehicles.
+    Path allocation is computed in ascending order of emission rate.
+
+    A space-time reservation table is used to keeps track of the number of vehicles on each road
+    at any timestamp (in seconds). This greatly enhances the accuracy of cost functions when
+    evaluating which path to take, as more congested roads would take longer to traverse.    
+
+    Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
+    - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
+    - hcost: optimistic approximate time required to reach destination using AVERAGE_ROAD_SPEED
+    - gcost: cost so far i.e. time taken so far, represents the ABSOLUTE time
+    - tiebreaker: an unique integer used as a tiebreaker when all costs are equal
+
+    Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle).
+    The Closed list contains all visited nodes (including end points of a road as well as the starting position).
+    """
+
+    routes: list[list[tuple[float, float]]] = []
+
+    # Get a sorted list of vehicles
+    sorted_vehicles = sorted(autoflow_vehicles, key = lambda vehicle: vehicle.emissionRate)
+
+    # Set up space-time reservation table 
+    reservation_table: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    # reservation_table[roadID][timestamp in seconds] => number of vehicles on road at timestamp
+
+    for vehicle in sorted_vehicles:
+
+        tiebreaker = 0 # tiebreaker value for when all costs are equal
+
+        # Hashmap that maps each node to their fcost
+        node_fcost: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
+
+        # Hashmap that stores the previous node, road index in landscape.roads and ABSOLUTE time cost of each node
+        previous_node: dict[
+            tuple[tuple[float, float], float], tuple[tuple[tuple[float, float], float], int, float]
+        ] = {}
+        # previous_node[(real position, normalised position)] => ((real position, normalised position), roadID, absolute time)
+        # NOTE: normalised position is used to handle roads where startPosReal and endPosReal are equal
+        # NOTE: ABSOLUTE time is needed to prevent time desync within reservation table
+        
+        # Calculate real destination position
+        destination_position = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+
+        # Nodes are the starting points of each road, can also be the starting point of the vehicle
+        open_nodes: list[float, float, float, Road, float] = [] # Open is a priority queue
+        closed_nodes: set[tuple(Road, float)] = set() # Closed can just be a set
 
         # Calculate the cost variables of the starting position
         gcost = 0
@@ -276,8 +484,12 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
                 time_taken = euclideanDistance(
                     real_position,
                     destination_position
-                ) / road.speedLimit_MPS
-                previous_node[(destination_position, vehicle.destinationPosition)] = ((real_position, position), time_taken)
+                ) / road.speedLimit_MPS # fastest time estimation from start of the road to the destination
+                previous_node[(destination_position, vehicle.destinationPosition)] = (
+                    (real_position, position),
+                    road.roadID,
+                    gcost + time_taken 
+                )
                 break
 
             if (road, 1) in closed_nodes: # if current road is the starting road, skip
@@ -285,11 +497,53 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
 
             # Otherwise, create instruction to move to the end of the road as there is no other choice
             roadEndPosition: tuple[float, float] = road.endPosReal
+
+            # Store references to road intersection for easy reference
+            road_start_intersection: Intersection = landscape.intersections[road.start]
+            road_end_intersection: Intersection = landscape.intersections[road.end]
+
+            # Initiate time cost of reaching road end node (ignoring traffic lights & any congestion)
             time_taken = euclideanDistance(
                 real_position,
                 roadEndPosition
             ) / road.speedLimit_MPS
-            previous_node[(roadEndPosition, 1)] = ((real_position, position), time_taken)
+
+            # Compute waiting time until the next green light
+            if len(road_end_intersection.neighbours) >= 3:
+                current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
+                if (
+                    (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
+                    > current_modulus_time
+                ):
+                    waiting_time = (
+                        road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
+                        - current_modulus_time
+                    )
+                    if waiting_time > 0: # Case 1: current time is earlier in the cycle
+                        pass
+                    else: # Case 2: current time is within the green light duration, allow vehicle through
+                        waiting_time = 0
+                else: # Case 3: current time is later in the cycle
+                    waiting_time = (
+                        len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
+                        - current_modulus_time 
+                        + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
+                    )
+                time_taken += waiting_time # update time taken to reflect traffic light waiting time
+
+                # Compute cost of reaching road end node (taking congestion into account)
+                time_taken += (
+                    reservation_table[road.roadID][int(gcost)]
+                    // road_end_intersection.trafficPassthroughRate[road_start_intersection]
+                    * road_end_intersection.trafficLightDuration
+                ) # update time taken to reflect the number of traffic light cycles waited
+
+            # Set previous node of road end node to road start node
+            previous_node[(roadEndPosition, 1)] = (
+                (real_position, position),
+                road.roadID,
+                gcost + time_taken
+            )
 
             # Add road end to closed nodes
             closed_nodes.add((road, 1))
@@ -303,10 +557,6 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
                 destination_position
             ) / AVERAGE_ROAD_SPEED_MPS
             fcost = gcost + hcost
-
-            # Store references to road intersection for easy reference
-            road_start_intersection: Intersection = landscape.intersections[road.start]
-            road_end_intersection: Intersection = landscape.intersections[road.end]
 
             # Examine neighbours
             for neighbour_intersection in road_end_intersection.neighbours:
@@ -322,31 +572,9 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
                 if (neighbour_road, 0) in closed_nodes:
                     continue
                 
-                # Initiate time cost of reaching neighbour node (ignoring the traffic light)
-                time_taken = road_end_intersection.intersectionPathways[road_start_intersection][neighbour_intersection].traversalTime
-
-                # Compute cost of reaching neighbour node (taking traffic light into account)
-                if len(road_end_intersection.neighbours) >= 3:
-                    current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
-                    if (
-                        (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
-                        > current_modulus_time
-                    ):
-                        waiting_time = (
-                            road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
-                            - current_modulus_time
-                        )
-                        if waiting_time > 0: # Case 1: current time is earlier in the cycle
-                            pass
-                        else: # Case 2: current time is within the green light duration, allow vehicle through
-                            waiting_time = 0
-                    else: # Case 3: current time is later in the cycle
-                        waiting_time = (
-                            len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
-                            - current_modulus_time 
-                            + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
-                        )
-                    time_taken += waiting_time # update time taken to reflect traffic light waiting times          
+                # Time cost of reaching neighbour node is the traversal time of virtual pathway
+                time_taken = road_end_intersection.intersectionPathways[road_start_intersection][neighbour_intersection].traversalTime     
+                # NOTE: traffic light waiting time is already accounted for by the gcost of reaching road end node
 
                 # Compute all cost values
                 neighbour_gcost = gcost + time_taken
@@ -361,35 +589,61 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle]):
 
                 # Push neighbour node into open list if fcost is smaller than the existing cost
                 if neighbour_fcost < node_fcost[(neighbour_road, 0)]:
-                    previous_node[(neighbour_road.startPosReal, 0)] = ((real_position, position), time_taken)
+                    node_fcost[(neighbour_road, 0)] = neighbour_fcost
+                    previous_node[(neighbour_road.startPosReal, 0)] = (
+                        (real_position, position),
+                        neighbour_road.roadID,
+                        -1 # skipped to avoid double marking and time desync in reservation table
+                    )
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
         # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
         route = [] 
 
-        # Create route using previous_node hashmap
+        # Initiate traceback variables
         current_real_position, current_position = destination_position, vehicle.destinationPosition
-        while (current_real_position, current_position) in previous_node:
-            node, relative_time_taken = previous_node[(current_real_position, current_position)]
-            # print(node)
-            # print((current_real_position, relative_time_taken))
-            if relative_time_taken > 0: # skip redundant instructions on roads with 0 length
-                route.append(current_real_position)
-            current_real_position, current_position = node
+        previousTimestamp = 0
 
+        # Create route using previous_node hashmap
+        while (current_real_position, current_position) in previous_node:
+
+            # Unpack previous node information
+            node, roadID, timestamp = previous_node[(current_real_position, current_position)]
+            previous_real_position, previous_position = node
+
+            # Append new instruction
+            if previous_real_position != current_real_position: # skip redundant instructions on roads with 0 length
+                route.append(current_real_position)
+
+            # Update congestion status of used road during the usage time period
+            if timestamp != -1: # skip virtual pathways for reservation table marking
+                for i in range(int(previousTimestamp), ceil(timestamp)):
+                    reservation_table[roadID][i] += 1
+
+            # Update traceback variables
+            previousTimestamp = timestamp
+            current_real_position, current_position = previous_real_position, previous_position
+
+        # Reverse instructions to obtain chronological order
         route.reverse()
         print()
-        print(route)                
+        print(route)
+
+        # Store computed route in routes list                
         routes.append(route)
 
     # for route in routes:
     #     print(routes)
 
-def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle]):
-    pass
-    
 
-for vehicle in selfish_vehicles:
+# for vehicle in selfish_vehicles:
+#     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
+#     #print(vehicle.destinationPosition, vehicle.destinationRoad)
+#     print(
+#         getRealPositionOnRoad(vehicle.road, vehicle.position),
+#         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+#     )
+for vehicle in autoflow_vehicles:
     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
     #print(vehicle.destinationPosition, vehicle.destinationRoad)
     print(

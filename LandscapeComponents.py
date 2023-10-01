@@ -92,7 +92,11 @@ class Intersection:
         self.trafficLightDuration: int = 5 # how long each phase lasts, in seconds
 
         # Lookup table for quickly accessing the when a particular road gets the green light
-        self.trafficLightLookup: dict[Intersection, int] = defaultdict(dict)
+        self.trafficLightLookup: dict[Intersection, int] = {}
+
+        # Hashmap for quickly accessing how many vehicles can pass through in a single green light
+        self.trafficPassthroughRate: dict[Intersection, int] = {}
+        # Maps (intersection where the from-road starts) to number of vehicles that can pass through
 
         # Pseudo roads for joining roads at an intersection
         self.intersectionPathways: dict[Intersection, dict[Intersection, Road]] = defaultdict(dict)
@@ -133,8 +137,16 @@ class Intersection:
             for i in range(roadCount):
                 self.trafficLightLookup[self.neighbours[self.trafficLightPattern[i]]] = i
 
-            # randomise phase duration between 5-15 seconds
+            # Randomise phase duration between 5-15 seconds
             self.trafficLightDuration = randint(5, 15) 
+
+            # Calculate traffic passthrough rate for every road
+            for intersection in self.neighbours:
+                self.trafficPassthroughRate[intersection] = (
+                    ACTIVE_LANDSCAPE.roadmap[intersection.coordinates()][self.coordinates()].speedLimit_MPS
+                    * self.trafficLightDuration
+                    // VEHICLE_LENGTH_METRES
+                )
 
         # Create virtual pathways
         for from_intersection in self.neighbours:
@@ -201,6 +213,8 @@ class Road:
     """
 
     def __init__(self, start: tuple[int, int], end: tuple[int, int]) -> None:
+
+        self.roadID: int = None # index within ACTIVELANDSCAPE.roads, assigned by ACTIVELANDSCAPE
 
         # Set starting intersection and ending intersection of the road
         self.start = start
@@ -630,6 +644,11 @@ class Landscape:
         for intersection in self.intersections.values():
             intersection.create_traffic_light()
 
+        # Assign road IDs
+        index = 0
+        for road in self.roads:
+            road.roadID = index
+            index += 1
 
     def generate_landscape_matrix(self) -> None:
         """
