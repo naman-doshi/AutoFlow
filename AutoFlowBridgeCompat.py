@@ -20,9 +20,13 @@ from copy import deepcopy
 #================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (LandPlotDescriptor((2, 2), (1, 1)), 5)
+    (LandPlotDescriptor((2, 2), (1, 1)), 5) # randomly oriented 2x1 land blocks x5
+    # (LandPlotDescriptor((5, 8), (1, 1), False), 4) # north-facing horizontal residential rows of 5-8 continuous land blocks x4
+    # (LandPlotDescriptor((1, 1), (5, 8), False), 4) # east-facing vertical residential rows of 5-8 continuous land blocks x4
+    # (LandPlotDescriptor((4, 4), (3, 3)), 2) # randomly oriented 4x3 school zones x2
+    # (LandPlotDescriptor((4, 6), (4, 6)), 1) # randomly oriented (4-6)x(4-6) park area x1
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)
+LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None) # 2x2 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 #=========================================
 
