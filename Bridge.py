@@ -67,11 +67,18 @@ class Vector2Message:
 
 @dataclasses.dataclass
 class RoadInitMessage:
+    id: int
+    speedLimit: float
     startPos: Vector2Message
     endPos: Vector2Message
 
     def __dict__(self):
-        return {"startPos": self.startPos.__dict__(), "endPos": self.endPos.__dict__()}
+        return {
+            "id": self.id,
+            "speedLimit": self.speedLimit,
+            "startPos": self.startPos.__dict__(),
+            "endPos": self.endPos.__dict__(),
+        }
 
     def serialize(self):
         return json.dumps(self.__dict__())
@@ -108,7 +115,7 @@ class InitMessage:
 @dataclasses.dataclass
 class VehicleUpdateMessage:
     id: int
-    route: list[Vector2Message]
+    route: list[Vector3Message]
 
     def __dict__(self):
         return {
@@ -161,7 +168,9 @@ class JSONUtils:
 async def handler(websocket: WebSocketServerProtocol):
     print("Session opened")
     inp: tuple[
-        dict[int, tuple[float, float]], Landscape, dict[int, list[tuple[float, float]]]
+        dict[int, tuple[float, float]],
+        Landscape,
+        dict[int, list[tuple[float, float, float]]],
     ] = outputToBridge()
 
     # Initial scene
@@ -177,6 +186,8 @@ async def handler(websocket: WebSocketServerProtocol):
     for road in inp[1].roads:
         roadMessages.append(
             RoadInitMessage(
+                road.roadID,
+                road.speedLimit_MPS,
                 Vector2Message(road.startPosReal[0], road.startPosReal[1]),
                 Vector2Message(road.endPosReal[0], road.endPosReal[1]),
             )
@@ -196,7 +207,7 @@ async def handler(websocket: WebSocketServerProtocol):
     # Updates
     updateMessages = []
     for id, route in inp[2].items():
-        currentCar = VehicleUpdateMessage(id, [Vector2Message(*r) for r in route])
+        currentCar = VehicleUpdateMessage(id, [Vector3Message(*r) for r in route])
         updateMessages.append(currentCar)
     await websocket.send(UpdateMessage(updateMessages).serialize())
 

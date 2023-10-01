@@ -1,7 +1,7 @@
 """
 This script executes the backend simulation.
 
-A virtual landscape is firstly generated, and a population of vehicle agents with random 
+A virtual landscape is firstly generated, and a population of vehicle agents with random
 starting positions and destinations are spawned.
 
 The population is then cloned and distributed with AutoFlow at a specified percentage.
@@ -58,7 +58,7 @@ road_speeds = 0
 road_count = 0
 for road in landscape.roads:
     if (
-        1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize or 
+        1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize or
         1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize
     ):
         road_speeds += road.speedLimit
@@ -74,11 +74,11 @@ AVERAGE_ROAD_SPEED_MPS = AVERAGE_ROAD_SPEED * 1000 / 3600
 # Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
 available_coordinates = [
     [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1) 
+        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
         if (i, j) in landscape.coordToRoad
     ],
     [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1) 
+        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
         if (i, j) in landscape.coordToRoad
     ]
 ]
@@ -128,12 +128,12 @@ while current_index < VEHICLE_COUNT:
 for vehicle in vehicles:
 
     # Select random pool
-    poolID = randint(0, 1) 
+    poolID = randint(0, 1)
     if len(available_coordinates[poolID]) == 0:
         poolID = 1-poolID # if current pool is used up, use the other pool
 
     # Select random coordinate from pool, and determine which road it is on
-    coordIndex = randint(0, len(available_coordinates[poolID]) - 1) 
+    coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
     coord = available_coordinates[poolID][coordIndex]
     road = landscape.coordToRoad[coord][poolID]
 
@@ -147,11 +147,11 @@ for road in landscape.roads: # sort vehicle stacks, cars at the front are at the
 # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
 available_coordinates = [
     [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1) 
+        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
         if (i, j) in landscape.coordToRoad
     ],
     [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1) 
+        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
         if (i, j) in landscape.coordToRoad
     ]
 ]
@@ -160,12 +160,12 @@ available_coordinates = [
 for vehicle in vehicles:
 
     # Select random pool
-    poolID = randint(0, 1) 
+    poolID = randint(0, 1)
     if len(available_coordinates[poolID]) == 0:
         poolID = 1-poolID # if current pool is used up, use the other pool
 
     # Select random coordinate from pool, and determine which road it is on
-    coordIndex = randint(0, len(available_coordinates[poolID]) - 1) 
+    coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
     coord = available_coordinates[poolID][coordIndex]
     road = landscape.coordToRoad[coord][poolID]
 
@@ -228,7 +228,7 @@ routes1 = deepcopy(selfish_vehicle_routes)
 #         getRealPositionOnRoad(vehicle.road, vehicle.position),
 #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
 #     )
-    
+
 print(len(selfish_vehicle_routes))
 print()
 
