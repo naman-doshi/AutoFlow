@@ -17,6 +17,7 @@ class VehicleInitMessage:
     position: tuple[float, float]
     rotation: float
     emissionRate: float
+    useAutoFlow: bool
 
     def __dict__(self):
         return {
@@ -24,6 +25,7 @@ class VehicleInitMessage:
             "position": self.position,
             "rotation": self.rotation,
             "emissionRate": self.emissionRate,
+            "useAutoFlow": self.useAutoFlow,
             "type": "VehicleInitMessage",
         }
 
@@ -168,11 +170,12 @@ class JSONUtils:
                 raise ValueError("Invalid type from JSON")
 
 
-USE_AUTOFLOW = True
-
-
 async def handler(websocket: WebSocketServerProtocol):
+    # User input
     print("Session opened")
+    USE_AUTOFLOW = False if input("Use AutoFlow (y/n)? ").startswith("n") else True
+    print(USE_AUTOFLOW)
+
     inp: tuple[
         dict[int, tuple[float, float]],
         Landscape,
@@ -183,7 +186,9 @@ async def handler(websocket: WebSocketServerProtocol):
     # Initial scene
     vehicleInits = []
     for id, pos in inp[0].items():
-        vehicleInits.append(VehicleInitMessage(id, pos, 0, inp[3][id].emissionRate))
+        vehicleInits.append(
+            VehicleInitMessage(id, pos, 0, inp[3][id].emissionRate, USE_AUTOFLOW)
+        )
 
     flatLandscapeMatrix = []
     for row in inp[1].landscapeMatrix:
