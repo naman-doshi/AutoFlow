@@ -6,6 +6,7 @@ import json
 
 from AutoFlowBridgeCompat import outputToBridge
 from LandscapeComponents import Landscape
+from VehicleAgents import Vehicle
 
 PORT = 8001
 
@@ -15,12 +16,14 @@ class VehicleInitMessage:
     id: int
     position: tuple[float, float]
     rotation: float
+    emissionRate: float
 
     def __dict__(self):
         return {
             "id": self.id,
             "position": self.position,
             "rotation": self.rotation,
+            "emissionRate": self.emissionRate,
             "type": "VehicleInitMessage",
         }
 
@@ -165,18 +168,22 @@ class JSONUtils:
                 raise ValueError("Invalid type from JSON")
 
 
+USE_AUTOFLOW = True
+
+
 async def handler(websocket: WebSocketServerProtocol):
     print("Session opened")
     inp: tuple[
         dict[int, tuple[float, float]],
         Landscape,
         dict[int, list[tuple[float, float, float]]],
-    ] = outputToBridge()
+        list[Vehicle],
+    ] = outputToBridge(USE_AUTOFLOW)
 
     # Initial scene
     vehicleInits = []
     for id, pos in inp[0].items():
-        vehicleInits.append(VehicleInitMessage(id, pos, 0))
+        vehicleInits.append(VehicleInitMessage(id, pos, 0, inp[3][id].emissionRate))
 
     flatLandscapeMatrix = []
     for row in inp[1].landscapeMatrix:

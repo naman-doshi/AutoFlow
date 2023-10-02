@@ -10,12 +10,13 @@ e.g. different car model sizes, number of passengers, etc.
 """
 
 
-#================ IMPORTS ================
+# ================ IMPORTS ================
 from LandscapeComponents import Road
 
 from abc import *
 from random import randint
-#=========================================
+
+# =========================================
 
 
 class Vehicle(ABC):
@@ -24,18 +25,20 @@ class Vehicle(ABC):
     Virtual representation of a vehicle on the map.
     """
 
-    routingSystems = {0: "Selfish", 1: "Autoflow"} # expandable
+    routingSystems = {0: "Selfish", 1: "Autoflow"}  # expandable
 
     @abstractmethod
     def __init__(self) -> None:
-        pass
+        self.emissionRate = 0
 
     def setRoutingSystem(self, systemID: int):
         self.routingSystem = Vehicle.routingSystems[systemID]
 
     def setLocation(self, road: Road, position: float):
-        self.road = road # the road the vehicle is currently on
-        self.position = position # float between 0 and 1 indicating linear position along a road
+        self.road = road  # the road the vehicle is currently on
+        self.position = (
+            position  # float between 0 and 1 indicating linear position along a road
+        )
         road.vehicleStack.append(self)
 
     def setDestination(self, road: Road, position: float):
@@ -60,7 +63,9 @@ class ConventionalVehicle(Vehicle):
     See https://www.ntc.gov.au/light-vehicle-emissions-intensity-australia for emission rate standards.
     """
 
-    def __init__(self, emissionRate: float = randint(100, 250), useAutoFlow: bool = False) -> None:
+    def __init__(
+        self, emissionRate: float = randint(100, 250), useAutoFlow: bool = False
+    ) -> None:
         self.emissionRate = emissionRate
         self.setRoutingSystem(int(useAutoFlow))
 
