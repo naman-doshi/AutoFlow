@@ -17,16 +17,28 @@ from AutoFlow import *
 from copy import deepcopy
 #=========================================
 
+# Literals
+COMMERCIAL_BLOCK = LandPlotDescriptor((2, 2), (1, 1)), 5 # randomly oriented 2x1 land blocks x5
+HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor((5, 8), (1, 1), False) # north-facing horizontal residential rows of 5-8 continuous land blocks x4
+VERTICAL_RESIDENTIAL_ROW = LandPlotDescriptor((1, 1), (5, 8), False) # east-facing vertical residential rows of 5-8 continuous land blocks x4
+SCHOOL_ZONE = LandPlotDescriptor((4, 4), (3, 3)) # randomly oriented 4x3 school zones x2
+LARGE_PARK_AREA = LandPlotDescriptor((4, 6), (4, 6)) # randomly oriented (4-6)x(4-6) park area x1
+
+# Leaving some space here so the exact definitions won't be visible if you scroll down
+# Ofc remove these 2 lines of comments
+
+
+
 #================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (LandPlotDescriptor((2, 2), (1, 1)), 5) # randomly oriented 2x1 land blocks x5
-    # (LandPlotDescriptor((5, 8), (1, 1), False), 4) # north-facing horizontal residential rows of 5-8 continuous land blocks x4
-    # (LandPlotDescriptor((1, 1), (5, 8), False), 4) # east-facing vertical residential rows of 5-8 continuous land blocks x4
-    # (LandPlotDescriptor((4, 4), (3, 3)), 2) # randomly oriented 4x3 school zones x2
-    # (LandPlotDescriptor((4, 6), (4, 6)), 1) # randomly oriented (4-6)x(4-6) park area x1
+    # (COMMERCIAL_BLOCK, 5),
+    # (HORIZONTAL_RESIDENTIAL_ROW, 3),
+    # (VERTICAL_RESIDENTIAL_ROW, 4),
+    # (SCHOOL_ZONE, 2),
+    # (LARGE_PARK_AREA, 1)
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None) # 2x2 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None) # 1x1 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 #=========================================
 
