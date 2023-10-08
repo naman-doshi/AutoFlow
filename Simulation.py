@@ -214,7 +214,7 @@ def modify_population(original_vehicle_population: list[Vehicle], autoflow_perce
     # Distribute AutoFlow & categorise vehicles
     for i in range(VEHICLE_COUNT):
         if i in marked_indexes:
-            vehicle_population[i].routingSystem = Vehicle.routingSystems[1] # switch to AutoFlow
+            vehicle_population[i].setRoutingSystem(1) # switch to AutoFlow
             autoflow_vehicles.append(vehicle_population[i])
         else:
             selfish_vehicles.append(vehicle_population[i])
