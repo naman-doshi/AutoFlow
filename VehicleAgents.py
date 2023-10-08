@@ -26,10 +26,13 @@ class Vehicle(ABC):
     """
 
     routingSystems = {0: "Selfish", 1: "Autoflow"}  # expandable
+    MAX_EMISSION_RATE = 250
+    MAX_PASSENGER_COUNT = 6
 
     @abstractmethod
     def __init__(self) -> None:
         self.emissionRate = 0
+        self.passengerCount = 1
 
     def setRoutingSystem(self, systemID: int):
         self.routingSystem = Vehicle.routingSystems[systemID]
@@ -64,7 +67,7 @@ class ConventionalVehicle(Vehicle):
     """
 
     def __init__(
-        self, emissionRate: float = randint(100, 250), passengerCount = randint(1, 6), useAutoFlow: bool = False
+        self, emissionRate: float = randint(100, Vehicle.MAX_EMISSION_RATE), passengerCount = randint(1, 6), useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = emissionRate
         self.passengerCount = passengerCount
@@ -78,7 +81,7 @@ class ElectricVehicle(Vehicle):
     """
 
     def __init__(
-            self, passengerCount = randint(1, 6), useAutoFlow: bool = False
+            self, passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT), useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = 0
         self.passengerCount = passengerCount
