@@ -64,9 +64,10 @@ class ConventionalVehicle(Vehicle):
     """
 
     def __init__(
-        self, emissionRate: float = randint(100, 250), useAutoFlow: bool = False
+        self, emissionRate: float = randint(100, 250), passengerCount = randint(1, 6), useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = emissionRate
+        self.passengerCount = passengerCount
         self.setRoutingSystem(int(useAutoFlow))
 
 
@@ -76,6 +77,9 @@ class ElectricVehicle(Vehicle):
     Electric vehicles run on electricity, therefore their emission rate is zero.
     """
 
-    def __init__(self, useAutoFlow: bool = False) -> None:
+    def __init__(
+            self, passengerCount = randint(1, 6), useAutoFlow: bool = False
+    ) -> None:
         self.emissionRate = 0
+        self.passengerCount = passengerCount
         self.setRoutingSystem(int(useAutoFlow))
