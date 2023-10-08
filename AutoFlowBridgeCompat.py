@@ -22,11 +22,11 @@ from copy import deepcopy
 # ================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (LandPlotDescriptor((2, 2), (1, 1)), 5)  # randomly oriented 2x1 land blocks x5
-    # (LandPlotDescriptor((5, 8), (1, 1), False), 4) # north-facing horizontal residential rows of 5-8 continuous land blocks x4
-    # (LandPlotDescriptor((1, 1), (5, 8), False), 4) # east-facing vertical residential rows of 5-8 continuous land blocks x4
-    # (LandPlotDescriptor((4, 4), (3, 3)), 2) # randomly oriented 4x3 school zones x2
-    # (LandPlotDescriptor((4, 6), (4, 6)), 1) # randomly oriented (4-6)x(4-6) park area x1
+    (LandPlotDescriptor((1, 1), (1, 1)), 5),  # randomly oriented 2x1 land blocks x5
+    # (LandPlotDescriptor((5, 8), (1, 1), False), 4), # north-facing horizontal residential rows of 5-8 continuous land blocks x4
+    # (LandPlotDescriptor((1, 1), (5, 8), False), 4), # east-facing vertical residential rows of 5-8 continuous land blocks x4
+    # (LandPlotDescriptor((4, 4), (3, 3)), 2), # randomly oriented 4x3 school zones x2
+    # (LandPlotDescriptor((4, 6), (4, 6)), 1), # randomly oriented (4-6)x(4-6) park area x1
 ]
 LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)  # 2x2 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
@@ -322,31 +322,41 @@ if __name__ == "__main__":
     #         print()
 
 
-def outputToBridge() -> (
-    tuple[
-        dict[int, tuple[float, float]],
-        Landscape,
-        dict[int, list[tuple[float, float, float]]],
-    ]
-):
-    # 100% Selfish
-    selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
-    selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-        selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
-    )
-    routes1 = deepcopy(selfish_vehicle_routes)
+def outputToBridge(
+    useAutoflow: bool,
+) -> tuple[
+    dict[int, tuple[float, float]],
+    Landscape,
+    dict[int, list[tuple[float, float, float]]],
+    list[Vehicle],
+]:
+    if useAutoflow:
+        # 100% AutoFlow
+        selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
+        selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
+            selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
+        )
+        routes2 = deepcopy(autoflow_vehicle_routes)
 
-    # 100% AutoFlow
-    selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
-    selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-        selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
-    )
-    routes2 = deepcopy(autoflow_vehicle_routes)
+        initPos: dict[int, tuple[float, float]] = {}
+        for i, vehicle in enumerate(autoflow_vehicles):
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
+        routes: dict[int, list[tuple[float, float, float]]] = {}
+        for i, route in enumerate(routes2):
+            routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
+        return (initPos, landscape, routes, autoflow_vehicles)
+    else:
+        # 100% Selfish
+        selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
+        selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
+            selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
+        )
+        routes1 = deepcopy(selfish_vehicle_routes)
 
-    initPos: dict[int, tuple[float, float]] = {}
-    for i, vehicle in enumerate(autoflow_vehicles):
-        initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
-    routes: dict[int, list[tuple[float, float, float]]] = {}
-    for i, route in enumerate(routes2):
-        routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
-    return (initPos, landscape, routes)
+        initPos: dict[int, tuple[float, float]] = {}
+        for i, vehicle in enumerate(selfish_vehicles):
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
+        routes: dict[int, list[tuple[float, float, float]]] = {}
+        for i, route in enumerate(routes1):
+            routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
+        return (initPos, landscape, routes, selfish_vehicles)

@@ -6,6 +6,7 @@ import json
 
 from AutoFlowBridgeCompat import outputToBridge
 from LandscapeComponents import Landscape
+from VehicleAgents import Vehicle
 
 PORT = 8001
 
@@ -15,12 +16,16 @@ class VehicleInitMessage:
     id: int
     position: tuple[float, float]
     rotation: float
+    emissionRate: float
+    useAutoFlow: bool
 
     def __dict__(self):
         return {
             "id": self.id,
             "position": self.position,
             "rotation": self.rotation,
+            "emissionRate": self.emissionRate,
+            "useAutoFlow": self.useAutoFlow,
             "type": "VehicleInitMessage",
         }
 
@@ -166,17 +171,24 @@ class JSONUtils:
 
 
 async def handler(websocket: WebSocketServerProtocol):
+    # User input
     print("Session opened")
+    USE_AUTOFLOW = False if input("Use AutoFlow (y/n)? ").startswith("n") else True
+    print(USE_AUTOFLOW)
+
     inp: tuple[
         dict[int, tuple[float, float]],
         Landscape,
         dict[int, list[tuple[float, float, float]]],
-    ] = outputToBridge()
+        list[Vehicle],
+    ] = outputToBridge(USE_AUTOFLOW)
 
     # Initial scene
     vehicleInits = []
     for id, pos in inp[0].items():
-        vehicleInits.append(VehicleInitMessage(id, pos, 0))
+        vehicleInits.append(
+            VehicleInitMessage(id, pos, 0, inp[3][id].emissionRate, USE_AUTOFLOW)
+        )
 
     flatLandscapeMatrix = []
     for row in inp[1].landscapeMatrix:
