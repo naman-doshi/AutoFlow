@@ -260,7 +260,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
 
     NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
-    sorted(
+    return sorted(
         autoflow_vehicles, 
         key = lambda vehicle: (
             emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
