@@ -94,11 +94,33 @@ class RoadInitMessage:
 
 
 @dataclasses.dataclass
+class IntersectionMessage:
+    id: Vector2Message
+    enterRoadIDs: list[int]
+    exitRoadIDs: list[int]
+
+    def __dict__(self):
+        return {
+            "id": self.id.__dict__(),
+            "enterRoadIDs": self.enterRoadIDs,
+            "exitRoadIDs": self.exitRoadIDs,
+        }
+
+    def serialize(self):
+        return json.dumps(self.__dict__())
+
+    @staticmethod
+    def deserialize(d):
+        return IntersectionMessage(**d)
+
+
+@dataclasses.dataclass
 class InitMessage:
     tiles: list[str]
     rowWidth: int
     vehicles: list[VehicleInitMessage]
     roads: list[RoadInitMessage]
+    intersections: list[IntersectionMessage]
 
     def __dict__(self):
         return {
@@ -106,6 +128,7 @@ class InitMessage:
             "rowWidth": self.rowWidth,
             "vehicles": [v.__dict__() for v in self.vehicles],
             "roads": [r.__dict__() for r in self.roads],
+            "intersections": [i.__dict__() for i in self.intersections],
             "type": "InitMessage",
         }
 
@@ -205,12 +228,18 @@ async def handler(websocket: WebSocketServerProtocol):
             )
         )
 
+    intersections = [
+        IntersectionMessage(Vector2Message(i[0][0], i[0][1]), i[1], i[2])
+        for i in inp[1].unityCache
+    ]
+
     await websocket.send(
         InitMessage(
             flatLandscapeMatrix,
             len(inp[1].landscapeMatrix),
             vehicleInits,
             roadMessages,
+            intersections,
         ).serialize()
     )
     print("Finished terrain")

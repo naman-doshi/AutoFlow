@@ -18,6 +18,7 @@ from AutoFlow import *
 from copy import deepcopy
 
 # =========================================
+
 # Literals
 COMMERCIAL_BLOCK = (
     LandPlotDescriptor((2, 2), (1, 1)),
@@ -41,10 +42,13 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (15, 15)
+LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (HORIZONTAL_RESIDENTIAL_ROW, 3),
-    (VERTICAL_RESIDENTIAL_ROW, 2)
+    # (COMMERCIAL_BLOCK, 5),
+    # (HORIZONTAL_RESIDENTIAL_ROW, 3),
+    # (VERTICAL_RESIDENTIAL_ROW, 4),
+    # (SCHOOL_ZONE, 2),
+    # (LARGE_PARK_AREA, 1)
 ]
 LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
@@ -57,10 +61,8 @@ LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fi
 
 # Generate virtual landscape
 landscape = Landscape(*LANDSCAPE_SIZE)
-landscape.generate_new_landscape(
-    desiredFeatures=LANDSCAPE_FEATURES, filler=LANDSCAPE_FILLER
-)
-# landscape.generate_new_landscape()
+# landscape.generate_new_landscape(desiredFeatures=LANDSCAPE_FEATURES, filler=LANDSCAPE_FILLER)
+landscape.generate_new_landscape()
 
 # There must be at least one road within the map area
 assert len(landscape.intersections) > 4
@@ -250,9 +252,7 @@ def modify_population(
     # Distribute AutoFlow & categorise vehicles
     for i in range(VEHICLE_COUNT):
         if i in marked_indexes:
-            vehicle_population[i].routingSystem = Vehicle.routingSystems[
-                1
-            ]  # switch to AutoFlow
+            vehicle_population[i].setRoutingSystem(1)  # switch to AutoFlow
             autoflow_vehicles.append(vehicle_population[i])
         else:
             selfish_vehicles.append(vehicle_population[i])
@@ -286,8 +286,8 @@ if __name__ == "__main__":
     #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
     #     )
 
-    # print(len(selfish_vehicle_routes))
-    # print()
+    print(len(selfish_vehicle_routes))
+    print()
 
     # for route in selfish_vehicle_routes:
     #     print(route)
@@ -308,36 +308,14 @@ if __name__ == "__main__":
     #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
     #     )
 
-    # print(len(autoflow_vehicle_routes))
-    # print()
+    print(len(autoflow_vehicle_routes))
+    print()
 
     # for route in autoflow_vehicle_routes:
     #     print(route)
     #     print()
 
-    # Function for calculating total distance of a route
-    def calculate_total_distance(route: list[tuple[float, float]]):
-        if route == []:
-            return 0
-        total_distance = 0
-        current_pos = route[0][0]
-        for i in range(1, len(route)):
-            total_distance += euclideanDistance(current_pos, route[i][0])
-            current_pos = route[i][0]
-        return total_distance
-
-    # Compare routes
-    # for i in range(VEHICLE_COUNT):
-    #     if routes1[i] != routes2[i]:
-    #         print(f"""
-    # Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
-    # Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
-    #         )
-    #         print(routes1[i])
-    #         print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
-    #         print(routes2[i])
-    #         print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
-    #         print()
+landscape.precomputeUnityCache()
 
 
 def outputToBridge(

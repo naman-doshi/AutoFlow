@@ -22,17 +22,18 @@ Three global constants (static variables) are defined:
 """
 
 
-#================ IMPORTS ================
+# ================ IMPORTS ================
 from collections import defaultdict, deque
 from random import randint, shuffle
 from copy import deepcopy
-#=========================================
 
-#=============== CONSTANTS ===============
+# =========================================
+
+# =============== CONSTANTS ===============
 CELL_SIZE_METRES: int = 20
 VEHICLE_LENGTH_METRES: int = 5
-ACTIVE_LANDSCAPE: 'Landscape' = None
-#=========================================
+ACTIVE_LANDSCAPE: "Landscape" = None
+# =========================================
 
 
 class LandPlot:
@@ -48,13 +49,11 @@ class LandPlot:
     """
 
     def __init__(self, xSize: int, ySize: int) -> None:
-
         # Set size of the land plot in number of cells
         self.xSize = xSize
         self.ySize = ySize
 
     def set_coordinate(self, xPos: int, yPos: int) -> None:
-
         # Set lower left coordinates of the land plot
         self.xPos = xPos
         self.yPos = yPos
@@ -79,7 +78,6 @@ class Intersection:
     """
 
     def __init__(self, xPos: float, yPos: float) -> None:
-
         # Set coordinates of the intersection
         self.xPos = xPos
         self.yPos = yPos
@@ -89,7 +87,7 @@ class Intersection:
 
         # Traffic light info
         self.trafficLightPattern: list[int] = None
-        self.trafficLightDuration: int = -1 # how long each phase lasts, in seconds
+        self.trafficLightDuration: int = -1  # how long each phase lasts, in seconds
 
         # Lookup table for quickly accessing the when a particular road gets the green light
         self.trafficLightLookup: dict[Intersection, int] = {}
@@ -99,12 +97,14 @@ class Intersection:
         # Maps (intersection where the from-road starts) to number of vehicles that can pass through
 
         # Pseudo roads for joining roads at an intersection
-        self.intersectionPathways: dict[Intersection, dict[Intersection, Road]] = defaultdict(dict)
+        self.intersectionPathways: dict[
+            Intersection, dict[Intersection, Road]
+        ] = defaultdict(dict)
         # Maps (intersection where the from-road starts) to (intersection where the to-road ends)
 
     def coordinates(self) -> tuple[int, int]:
         return (self.xPos, self.yPos)
-    
+
     def create_traffic_light(self) -> None:
         """
         Creates a random traffic signal pattern based on self.neighbours.
@@ -127,23 +127,28 @@ class Intersection:
 
         roadCount = len(self.neighbours)
 
-        if roadCount >= 3: # traffic lights are only needed for intersections with 3 or more roads
-        
+        if (
+            roadCount >= 3
+        ):  # traffic lights are only needed for intersections with 3 or more roads
             # Create random green light order
             self.trafficLightPattern = [i for i in range(roadCount)]
-            shuffle(self.trafficLightPattern) # randomise green light order
+            shuffle(self.trafficLightPattern)  # randomise green light order
 
             # Create lookup table based on green light order
             for i in range(roadCount):
-                self.trafficLightLookup[self.neighbours[self.trafficLightPattern[i]]] = i
+                self.trafficLightLookup[
+                    self.neighbours[self.trafficLightPattern[i]]
+                ] = i
 
             # Randomise phase duration between 2-5 seconds
-            self.trafficLightDuration = randint(2, 5) 
+            self.trafficLightDuration = randint(2, 5)
 
             # Calculate traffic passthrough rate for every road
             for intersection in self.neighbours:
                 self.trafficPassthroughRate[intersection] = (
-                    ACTIVE_LANDSCAPE.roadmap[intersection.coordinates()][self.coordinates()].speedLimit_MPS
+                    ACTIVE_LANDSCAPE.roadmap[intersection.coordinates()][
+                        self.coordinates()
+                    ].speedLimit_MPS
                     * self.trafficLightDuration
                     // VEHICLE_LENGTH_METRES
                 )
@@ -152,45 +157,73 @@ class Intersection:
         for from_intersection in self.neighbours:
             for to_intersection in self.neighbours:
                 if to_intersection.coordinates() != from_intersection.coordinates():
-
                     pseudoPathway = Road(self.coordinates(), self.coordinates())
 
                     # Set the starting and ending positions of the virtual pathway
-                    pseudoPathway.startPosReal = ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].endPosReal
-                    pseudoPathway.endPosReal = ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].startPosReal
+                    pseudoPathway.startPosReal = ACTIVE_LANDSCAPE.roadmap[
+                        from_intersection.coordinates()
+                    ][self.coordinates()].endPosReal
+                    pseudoPathway.endPosReal = ACTIVE_LANDSCAPE.roadmap[
+                        self.coordinates()
+                    ][to_intersection.coordinates()].startPosReal
 
                     # Calculate real length and direction of the virtual pathway
                     if (
-                        ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction != 
-                        ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].direction
-                    ): # a turn is required
+                        ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][
+                            self.coordinates()
+                        ].direction
+                        != ACTIVE_LANDSCAPE.roadmap[self.coordinates()][
+                            to_intersection.coordinates()
+                        ].direction
+                    ):  # a turn is required
                         pseudoPathway.length = (
-                            (pseudoPathway.startPosReal[0]-pseudoPathway.endPosReal[0])**2 +
-                            (pseudoPathway.startPosReal[1]-pseudoPathway.endPosReal[1])**2
-                        )**0.5
+                            (
+                                pseudoPathway.startPosReal[0]
+                                - pseudoPathway.endPosReal[0]
+                            )
+                            ** 2
+                            + (
+                                pseudoPathway.startPosReal[1]
+                                - pseudoPathway.endPosReal[1]
+                            )
+                            ** 2
+                        ) ** 0.5
                         pseudoPathway.direction = (
-                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction +
-                            ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].direction
-                        ) # simply join the directions e.g. north road to east road => NE
-                    else: # go straight, no turn required
+                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][
+                                self.coordinates()
+                            ].direction
+                            + ACTIVE_LANDSCAPE.roadmap[self.coordinates()][
+                                to_intersection.coordinates()
+                            ].direction
+                        )  # simply join the directions e.g. north road to east road => NE
+                    else:  # go straight, no turn required
                         pseudoPathway.length = CELL_SIZE_METRES
-                        pseudoPathway.direction = (
-                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].direction
-                        ) # same direction
+                        pseudoPathway.direction = ACTIVE_LANDSCAPE.roadmap[
+                            from_intersection.coordinates()
+                        ][
+                            self.coordinates()
+                        ].direction  # same direction
 
                     # Asign speed limit of the virtual pathway
                     pseudoPathway.set_speed_limit(
                         (
-                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][self.coordinates()].speedLimit +
-                            ACTIVE_LANDSCAPE.roadmap[self.coordinates()][to_intersection.coordinates()].speedLimit
-                        ) / 2
-                    ) # set speed limit of pathway to the average of the two connecting roads
+                            ACTIVE_LANDSCAPE.roadmap[from_intersection.coordinates()][
+                                self.coordinates()
+                            ].speedLimit
+                            + ACTIVE_LANDSCAPE.roadmap[self.coordinates()][
+                                to_intersection.coordinates()
+                            ].speedLimit
+                        )
+                        / 2
+                    )  # set speed limit of pathway to the average of the two connecting roads
 
                     # Calculate real traversal time and max vehicle count
                     pseudoPathway.calculate_traversal_time()
                     pseudoPathway.calculate_max_vehicle_count()
 
-                    self.intersectionPathways[from_intersection][to_intersection] = pseudoPathway           
+                    self.intersectionPathways[from_intersection][
+                        to_intersection
+                    ] = pseudoPathway
 
     def __hash__(self) -> int:
         return hash((self.xPos, self.yPos))
@@ -200,7 +233,7 @@ class Road:
 
     """
     A road is one way lane between two intersections, or an intersection and one side of the map border.
-    By default, two roads going opposite directions are constructed for every group of road tiles. 
+    By default, two roads going opposite directions are constructed for every group of road tiles.
 
     Each road has the following properties:
     - Starting coordinate and ending coordinate
@@ -213,8 +246,9 @@ class Road:
     """
 
     def __init__(self, start: tuple[int, int], end: tuple[int, int]) -> None:
-
-        self.roadID: int = None # index within ACTIVELANDSCAPE.roads, assigned by ACTIVELANDSCAPE
+        self.roadID: int = (
+            None  # index within ACTIVELANDSCAPE.roads, assigned by ACTIVELANDSCAPE
+        )
 
         # Set starting intersection and ending intersection of the road
         self.start = start
@@ -235,20 +269,44 @@ class Road:
 
         # Adjust real starting & ending positions according to direction
         if self.direction == "N":
-            self.startPosReal = (self.startPosReal[0] + CELL_SIZE_METRES/4, self.startPosReal[1] + CELL_SIZE_METRES/2)
-            self.endPosReal = (self.endPosReal[0] + CELL_SIZE_METRES/4, self.endPosReal[1] - CELL_SIZE_METRES/2)
+            self.startPosReal = (
+                self.startPosReal[0] + CELL_SIZE_METRES / 4,
+                self.startPosReal[1] + CELL_SIZE_METRES / 2,
+            )
+            self.endPosReal = (
+                self.endPosReal[0] + CELL_SIZE_METRES / 4,
+                self.endPosReal[1] - CELL_SIZE_METRES / 2,
+            )
         elif self.direction == "S":
-            self.startPosReal = (self.startPosReal[0] - CELL_SIZE_METRES/4, self.startPosReal[1] - CELL_SIZE_METRES/2)
-            self.endPosReal = (self.endPosReal[0] - CELL_SIZE_METRES/4, self.endPosReal[1] + CELL_SIZE_METRES/2)
+            self.startPosReal = (
+                self.startPosReal[0] - CELL_SIZE_METRES / 4,
+                self.startPosReal[1] - CELL_SIZE_METRES / 2,
+            )
+            self.endPosReal = (
+                self.endPosReal[0] - CELL_SIZE_METRES / 4,
+                self.endPosReal[1] + CELL_SIZE_METRES / 2,
+            )
         elif self.direction == "E":
-            self.startPosReal = (self.startPosReal[0] + CELL_SIZE_METRES/2, self.startPosReal[1] - CELL_SIZE_METRES/4)
-            self.endPosReal = (self.endPosReal[0] - CELL_SIZE_METRES/2, self.endPosReal[1] - CELL_SIZE_METRES/4)
+            self.startPosReal = (
+                self.startPosReal[0] + CELL_SIZE_METRES / 2,
+                self.startPosReal[1] - CELL_SIZE_METRES / 4,
+            )
+            self.endPosReal = (
+                self.endPosReal[0] - CELL_SIZE_METRES / 2,
+                self.endPosReal[1] - CELL_SIZE_METRES / 4,
+            )
         elif self.direction == "W":
-            self.startPosReal = (self.startPosReal[0] - CELL_SIZE_METRES/2, self.startPosReal[1] + CELL_SIZE_METRES/4)
-            self.endPosReal = (self.endPosReal[0] + CELL_SIZE_METRES/2, self.endPosReal[1] + CELL_SIZE_METRES/4)
+            self.startPosReal = (
+                self.startPosReal[0] - CELL_SIZE_METRES / 2,
+                self.startPosReal[1] + CELL_SIZE_METRES / 4,
+            )
+            self.endPosReal = (
+                self.endPosReal[0] + CELL_SIZE_METRES / 2,
+                self.endPosReal[1] + CELL_SIZE_METRES / 4,
+            )
 
         # Set real length and speed limit
-        self.cellSpan = ((abs(end[0] - start[0]) + abs(end[1] - start[1])) - 1)
+        self.cellSpan = (abs(end[0] - start[0]) + abs(end[1] - start[1])) - 1
         self.length = self.cellSpan * CELL_SIZE_METRES
         self.set_speed_limit()
 
@@ -266,7 +324,7 @@ class Road:
         self.positionTable: dict[tuple[int, int], float] = {}
 
         # Compute position table
-        i = 0.5 # vehicles cannot start at the beginning or end of any road
+        i = 0.5  # vehicles cannot start at the beginning or end of any road
         if self.direction == "N":
             for yCoord in range(start[1] + 1, end[1]):
                 self.positionTable[(start[0], yCoord)] = 1 / self.cellSpan * i
@@ -285,26 +343,28 @@ class Road:
                 i += 1
 
     def set_direction(self):
-        if self.start[0] == self.end[0]: # vertical road
-            if self.start[1] < self.end[1]: 
-                self.direction = "N" # heading north
-            else: 
-                self.direction = "S" # heading south
-        else: # horizontal road
-            if self.start[0] < self.end[0]: 
-                self.direction = "E" # heading east
-            else: 
-                self.direction = "W" # heading west
+        if self.start[0] == self.end[0]:  # vertical road
+            if self.start[1] < self.end[1]:
+                self.direction = "N"  # heading north
+            else:
+                self.direction = "S"  # heading south
+        else:  # horizontal road
+            if self.start[0] < self.end[0]:
+                self.direction = "E"  # heading east
+            else:
+                self.direction = "W"  # heading west
 
     # this method should be overwritten by subclasses of road, e.g. highway => 120km/h
-    def set_speed_limit(self, speedlimit: float = 60) -> None: 
+    def set_speed_limit(self, speedlimit: float = 60) -> None:
         self.speedLimit = speedlimit / 4
         self.speedLimit_MPS = speedlimit * 1000 / 3600 / 4
 
-    def calculate_traversal_time(self) -> None: # calculates traversal time in seconds
+    def calculate_traversal_time(self) -> None:  # calculates traversal time in seconds
         self.traversalTime = self.length / self.speedLimit_MPS
 
-    def calculate_max_vehicle_count(self) -> None: # calculates the maximum number of cars that can physically fit
+    def calculate_max_vehicle_count(
+        self,
+    ) -> None:  # calculates the maximum number of cars that can physically fit
         self.maxVehicleCount = max(1, self.length // VEHICLE_LENGTH_METRES)
 
 
@@ -321,8 +381,12 @@ class LandPlotDescriptor:
     - randomOrientation indicates whether x and y can be swapped when generating the specified landplot
     """
 
-    def __init__(self, xRange: tuple[int, int], yRange: tuple[int, int], randomOrientation: bool = True) -> None:
-
+    def __init__(
+        self,
+        xRange: tuple[int, int],
+        yRange: tuple[int, int],
+        randomOrientation: bool = True,
+    ) -> None:
         # Set size range of x and size range of y in number of cells
         self.xRange = xRange
         self.yRange = yRange
@@ -347,7 +411,6 @@ class Landscape:
     """
 
     def __init__(self, xSize: int, ySize: int, cellSize: int = 100) -> None:
-
         # Set size of the generated landscape in cell count, e.g. 10 x 10 cells with a cellSize of 100 => 1km^2 area
         self.xSize = xSize
         self.ySize = ySize
@@ -378,7 +441,7 @@ class Landscape:
     #             neighbors.append((new_x, new_y))
 
     #     return neighbors
-    
+
     # def get_cost(self, current, neighbor):
     #     """
     #     Calculate the cost to move from the current cell to the neighbor cell.
@@ -397,31 +460,40 @@ class Landscape:
     #     return distance
 
     def reset_landscape(self) -> None:
-
         # 2D matrix representing the COMPACT land plot allocations i.e. no roads, x and y are cell coordinates
-        self.gridMatrix: list[list[tuple[int, int]]] = [[None for i in range(self.xSize)] for j in range(self.ySize)]
+        self.gridMatrix: list[list[tuple[int, int]]] = [
+            [None for i in range(self.xSize)] for j in range(self.ySize)
+        ]
 
         # Counter for the amount of available area remaing in gridMatrix
         self.availableArea = self.xSize * self.ySize
 
         # 2D matrix representing the generated landscape, x and y are cell coordinates
-        self.landscapeMatrix: list[list[str]] = [[None for i in range(self.xSize)] for j in range(self.ySize)]
+        self.landscapeMatrix: list[list[str]] = [
+            [None for i in range(self.xSize)] for j in range(self.ySize)
+        ]
 
         # Component references
         self.landPlots: list[LandPlot] = []
-        self.landMap: dict[tuple[int, int], LandPlot] = {} # coord: land plot
+        self.landMap: dict[tuple[int, int], LandPlot] = {}  # coord: land plot
         self.roads: list[Road] = []
-        self.intersections: dict[tuple[int, int], Intersection] = {} # coord: intersection
+        self.intersections: dict[
+            tuple[int, int], Intersection
+        ] = {}  # coord: intersection
 
         # Hashmap for accessing roads via intersection coordinates, e.g. self.roadmap[intersection1][intersection2]
-        self.roadmap: dict[tuple[int, int], dict[tuple[int, int], Road]] = defaultdict(dict)
+        self.roadmap: dict[tuple[int, int], dict[tuple[int, int], Road]] = defaultdict(
+            dict
+        )
 
         # Hashmap for accessing the road of a particular coordinate, first Road has smaller coords than second Road
-        self.coordToRoad: dict[tuple[int, int], tuple[Road, Road]] = {} 
+        self.coordToRoad: dict[tuple[int, int], tuple[Road, Road]] = {}
         # i.e. first Road goes west or south, second Road goes east or north
 
     @staticmethod
-    def generate_features(desiredFeatures: list[tuple[LandPlotDescriptor, int]]) -> list[LandPlot]:
+    def generate_features(
+        desiredFeatures: list[tuple[LandPlotDescriptor, int]]
+    ) -> list[LandPlot]:
         """
         Generates and returns a list of feature groups from a list of LandPlotDescriptor and max occurrence counts.
         Each feature group represents a desired feature.
@@ -430,36 +502,33 @@ class Landscape:
         generatedFeatures: list[LandPlot] = []
 
         for desiredFeature, maxOccurrenceCount in desiredFeatures:
-
-            if maxOccurrenceCount <= 0: # must be positive
+            if maxOccurrenceCount <= 0:  # must be positive
                 continue
 
             for i in range(maxOccurrenceCount):
-
                 # Generate land plot feature
                 if desiredFeature.randomOrientation == True:
                     # Randomly swap the x and y sizes
                     if randint(0, 1):
                         feature = LandPlot(
-                            randint(*desiredFeature.xRange), 
-                            randint(*desiredFeature.yRange)
+                            randint(*desiredFeature.xRange),
+                            randint(*desiredFeature.yRange),
                         )
                     else:
                         feature = LandPlot(
-                            randint(*desiredFeature.yRange), 
-                            randint(*desiredFeature.xRange)
+                            randint(*desiredFeature.yRange),
+                            randint(*desiredFeature.xRange),
                         )
                 else:
                     feature = LandPlot(
-                        randint(*desiredFeature.xRange), 
-                        randint(*desiredFeature.yRange)
+                        randint(*desiredFeature.xRange), randint(*desiredFeature.yRange)
                     )
 
                 # Add feature to generatedFeatures list
                 generatedFeatures.append(feature)
 
         return generatedFeatures
-    
+
     def get_valid_placements(self, feature: LandPlot) -> list[tuple[int, int]]:
         """
         Returns a list of all possible bottom left coordinates where the feature land plot can fit within self.gridMatrix.
@@ -470,28 +539,26 @@ class Landscape:
         # Check every possibly valid placement coordinate
         for ycoord in range(self.ySize - feature.ySize + 1):
             for xcoord in range(self.xSize - feature.xSize + 1):
-
                 # Assume current placement coordinate is valid
                 valid = True
 
-                # Check every cell covered by the feature land plot                
+                # Check every cell covered by the feature land plot
                 for y in range(ycoord, ycoord + feature.ySize):
                     for x in range(xcoord, xcoord + feature.xSize):
-
                         # cell has already been taken by another land plot
-                        if self.gridMatrix[y][x] != None: 
+                        if self.gridMatrix[y][x] != None:
                             valid = False
                             break
 
                     if not valid:
                         break
-                
+
                 # Append valid coordinates to list
                 if valid:
                     valid_coordinates.append((xcoord, ycoord))
 
         return valid_coordinates
-    
+
     def place_feature(self, feature: LandPlot, xPos: int, yPos: int) -> None:
         """
         Places a feature land plot within self.gridMatrix.
@@ -505,7 +572,9 @@ class Landscape:
                 self.gridMatrix[y][x] = (xPos, yPos)
                 self.availableArea -= 1
 
-    def connect_intersections(self, intersection1: Intersection, intersection2: Intersection) -> None:
+    def connect_intersections(
+        self, intersection1: Intersection, intersection2: Intersection
+    ) -> None:
         """
         Connects two intersections by creating two roads that go in opposite directions.
         Then updates self.coordToRoad for vehicle agents to easily locate the road they're on.
@@ -533,24 +602,26 @@ class Landscape:
         self.roads.append(road2)
 
         # Update self.coordToRoad to map every cell covered by road to road
-        if intersection1.yPos == intersection2.yPos: # horizontally alligned
-
-            if intersection1.xPos < intersection2.xPos: # intersection 1 is to the left of intersection 2
+        if intersection1.yPos == intersection2.yPos:  # horizontally alligned
+            if (
+                intersection1.xPos < intersection2.xPos
+            ):  # intersection 1 is to the left of intersection 2
                 roadWest, roadEast = road2, road1
-            else: # intersection 2 is to the left of intersection 1
+            else:  # intersection 2 is to the left of intersection 1
                 roadWest, roadEast = road1, road2
 
-            for xCoord in range(intersection1.xPos+1, intersection2.xPos):
+            for xCoord in range(intersection1.xPos + 1, intersection2.xPos):
                 self.coordToRoad[(xCoord, intersection1.yPos)] = (roadWest, roadEast)
 
-        else: # vertically alligned
-
-            if intersection1.yPos < intersection2.yPos: # intersection 1 is to the south of intersection 2
+        else:  # vertically alligned
+            if (
+                intersection1.yPos < intersection2.yPos
+            ):  # intersection 1 is to the south of intersection 2
                 roadSouth, roadNorth = road2, road1
-            else: # intersection 2 is to the south of intersection 1
+            else:  # intersection 2 is to the south of intersection 1
                 roadSouth, roadNorth = road1, road2
 
-            for yCoord in range(intersection1.yPos+1, intersection2.yPos):
+            for yCoord in range(intersection1.yPos + 1, intersection2.yPos):
                 self.coordToRoad[(intersection1.xPos, yCoord)] = (roadSouth, roadNorth)
 
     def label_intersections(self, pos1: tuple[int, int], pos2: tuple[int, int]):
@@ -564,20 +635,20 @@ class Landscape:
         self.landscapeMatrix[pos2[1]][pos2[0]] = "IS"
 
         # Add road labels between the two intersections to self.landscapeMatrix
-        if pos1[1] == pos2[1]: # horizontal roads
-            for xCoord in range(min(pos1[0], pos2[0])+1, max(pos1[0], pos2[0])):
+        if pos1[1] == pos2[1]:  # horizontal roads
+            for xCoord in range(min(pos1[0], pos2[0]) + 1, max(pos1[0], pos2[0])):
                 if self.landscapeMatrix[pos1[1]][xCoord] == None:
                     self.landscapeMatrix[pos1[1]][xCoord] = "HR"
-        else: # vertical roads
-            for yCoord in range(min(pos1[1], pos2[1])+1, max(pos1[1], pos2[1])):
+        else:  # vertical roads
+            for yCoord in range(min(pos1[1], pos2[1]) + 1, max(pos1[1], pos2[1])):
                 if self.landscapeMatrix[yCoord][pos1[0]] == None:
                     self.landscapeMatrix[yCoord][pos1[0]] = "VR"
 
     def generate_new_landscape(
-            self, 
-            desiredFeatures: list[tuple[LandPlotDescriptor, int]] = [], 
-            filler: LandPlotDescriptor = LandPlotDescriptor((1, 1), (1, 1), False)
-        ) -> None:
+        self,
+        desiredFeatures: list[tuple[LandPlotDescriptor, int]] = [],
+        filler: LandPlotDescriptor = LandPlotDescriptor((1, 1), (1, 1), False),
+    ) -> None:
         """
         Algorithm for generating a random new landscape based on a list of desired features.
 
@@ -585,15 +656,15 @@ class Landscape:
         - desiredFeatures: a list of (LandPlotDescriptor, maxCount) describing desired features and maximum occurrence
         - filler: a land plot used to populate the landscape, may occur indefinitely
 
-        If the list of desired features is empty, or when no more desired features can fit, 
+        If the list of desired features is empty, or when no more desired features can fit,
         filler land plot will be used to populate the landscape.
 
         The actual map area is (1, 1) to (xSize, ySize) inclusive, i.e. 1-indexed.
         This is because the perimeter of the landscape is generated artificially for the ease of road placements.
-        
+
         The road filling algorithm may double the xSize and ySize of the generated landscape.
         Therefore, the generated map size will most likely NOT be the same as the initially defined map size.
-        
+
         More speficially:
         - the final xSize ranges from xSize to xSize*2-1 inclusive
         - the final ySize ranges from ySize to ySize*2-1 inclusive
@@ -606,10 +677,10 @@ class Landscape:
 
         # Generate feature land plots from desired features, then sort by decreasing area (place larger features first)
         featuresToAdd = Landscape.generate_features(desiredFeatures=desiredFeatures)
-        featuresToAdd.sort(key = lambda feature: feature.area(), reverse = True)
+        featuresToAdd.sort(key=lambda feature: feature.area(), reverse=True)
 
         # Skip impossible placements quickly via temporary optimisation hashmap
-        isUnplaceable: dict[tuple[int, int]: bool] = defaultdict(lambda: False)
+        isUnplaceable: dict[tuple[int, int] : bool] = defaultdict(lambda: False)
 
         # Fit feature land plots into the landscape
         for feature in featuresToAdd:
@@ -622,11 +693,15 @@ class Landscape:
             if not valid_coordinates:
                 isUnplaceable[(feature.xSize, feature.ySize)] = True
                 continue
-            self.place_feature(feature, *valid_coordinates[randint(0, len(valid_coordinates)-1)])
+            self.place_feature(
+                feature, *valid_coordinates[randint(0, len(valid_coordinates) - 1)]
+            )
 
         # Generate filler land plots, then sort by decreasing area (place larger features first)
-        fillerFeatures = Landscape.generate_features(desiredFeatures=[(filler, self.availableArea)])
-        fillerFeatures.sort(key = lambda feature: feature.area(), reverse = True)
+        fillerFeatures = Landscape.generate_features(
+            desiredFeatures=[(filler, self.availableArea)]
+        )
+        fillerFeatures.sort(key=lambda feature: feature.area(), reverse=True)
 
         # Fill in remaining area with filler, remaining area may not be completely filled if filler isn't 1 by 1
         for feature in fillerFeatures:
@@ -636,7 +711,9 @@ class Landscape:
             if not valid_coordinates:
                 isUnplaceable[(feature.xSize, feature.ySize)] = True
                 continue
-            self.place_feature(feature, *valid_coordinates[randint(0, len(valid_coordinates)-1)])
+            self.place_feature(
+                feature, *valid_coordinates[randint(0, len(valid_coordinates) - 1)]
+            )
 
         self.generate_landscape_matrix()
 
@@ -669,25 +746,29 @@ class Landscape:
         # Extend width of landscape for new roads
         for prevX in range(self.xSize):
             for prevY in range(self.ySize):
-
                 # Skip unassigned area
                 if self.gridMatrix[prevY][prevX] == None:
                     continue
-                
+
                 # Calculate corresponding coordiantes in landscapeMatrix
                 newX, newY = prevX + xExtend, prevY + yExtend
 
                 # Check neighbour cell to the right, if it belongs to a different plot of land then add road
-                if prevX < self.xSize-1 and self.gridMatrix[prevY][prevX] != self.gridMatrix[prevY][prevX+1]:
-
+                if (
+                    prevX < self.xSize - 1
+                    and self.gridMatrix[prevY][prevX]
+                    != self.gridMatrix[prevY][prevX + 1]
+                ):
                     # Extend width of landscape matrix if not already extended
                     if not xBuffer[prevX]:
                         for y in range(self.ySize + yExtend):
                             self.landscapeMatrix[y].insert(
-                                newX+1, 
-                                self.landscapeMatrix[y][newX] if self.landscapeMatrix[y][newX] == self.landscapeMatrix[y][newX+1] 
-                                else None
-                            )      
+                                newX + 1,
+                                self.landscapeMatrix[y][newX]
+                                if self.landscapeMatrix[y][newX]
+                                == self.landscapeMatrix[y][newX + 1]
+                                else None,
+                            )
                         xBuffer[prevX] = True
                         xExtend += 1
 
@@ -699,24 +780,30 @@ class Landscape:
         # Extend length of landscape for new roads
         for prevY in range(self.ySize):
             for prevX in range(self.xSize):
-
                 # Skip unassigned area
                 if self.gridMatrix[prevY][prevX] == None:
                     continue
-                
+
                 # Calculate corresponding coordiantes in landscapeMatrix
-                newX, newY = prevX + xExtend, prevY + yExtend                                 
+                newX, newY = prevX + xExtend, prevY + yExtend
 
                 # Check neighbour cell below, if it belongs to a different plot of land then add road
-                if prevY < self.ySize-1 and self.gridMatrix[prevY][prevX] != self.gridMatrix[prevY+1][prevX]:
-
+                if (
+                    prevY < self.ySize - 1
+                    and self.gridMatrix[prevY][prevX]
+                    != self.gridMatrix[prevY + 1][prevX]
+                ):
                     # Extend length of landscape matrix if not already extended
                     if not yBuffer[prevY]:
                         self.landscapeMatrix.insert(
-                            newY+1, [
-                                self.landscapeMatrix[newY][x] if self.landscapeMatrix[newY][x] == self.landscapeMatrix[newY+1][x]
-                                else None 
-                                for x in range(self.xSize + xExtend)]
+                            newY + 1,
+                            [
+                                self.landscapeMatrix[newY][x]
+                                if self.landscapeMatrix[newY][x]
+                                == self.landscapeMatrix[newY + 1][x]
+                                else None
+                                for x in range(self.xSize + xExtend)
+                            ],
                         )
                         yBuffer[prevY] = True
                         yExtend += 1
@@ -732,15 +819,14 @@ class Landscape:
 
         # Pad landscape for land plot reconstruction and road fitting
         self.landscapeMatrix = (
-            [[None for i in range(self.xSize + 2)]] + 
-            [[None] + self.landscapeMatrix[i] + [None] for i in range(self.ySize)] +
             [[None for i in range(self.xSize + 2)]]
+            + [[None] + self.landscapeMatrix[i] + [None] for i in range(self.ySize)]
+            + [[None for i in range(self.xSize + 2)]]
         )
-        
+
         # Reconstruct all land plots
         for yPos in range(1, self.ySize + 1):
             for xPos in range(1, self.xSize + 1):
-
                 # Skip unassigned area
                 if self.landscapeMatrix[yPos][xPos] == None:
                     continue
@@ -748,11 +834,13 @@ class Landscape:
                 landPlotID = self.landscapeMatrix[yPos][xPos]
 
                 # If the current cell is the bottom left corner, create new land plot
-                if landPlotID != self.landscapeMatrix[yPos][xPos-1] and landPlotID != self.landscapeMatrix[yPos-1][xPos]:
-
+                if (
+                    landPlotID != self.landscapeMatrix[yPos][xPos - 1]
+                    and landPlotID != self.landscapeMatrix[yPos - 1][xPos]
+                ):
                     # Initiate size variables of the land plot
                     xSize, ySize = 0, 0
-                    
+
                     for xCoord in range(xPos, self.xSize + 1):
                         if self.landscapeMatrix[yPos][xCoord] == landPlotID:
                             xSize += 1
@@ -768,27 +856,32 @@ class Landscape:
 
                     # Add land plot to component references
                     for yCoord in range(yPos, yPos + ySize):
-                        for xCoord in range(xPos, xPos + xSize):                            
+                        for xCoord in range(xPos, xPos + xSize):
                             self.landMap[(yCoord, xCoord)] = landPlot
 
         # Create roads and intersections
         for landPlot in self.landPlots:
-
             # Spawn intersections at all four corners of every land plot
             corners = [
-                (landPlot.xPos-1, landPlot.yPos-1), 
-                (landPlot.xPos + landPlot.xSize, landPlot.yPos-1),
-                (landPlot.xPos-1, landPlot.yPos + landPlot.ySize),
-                (landPlot.xPos + landPlot.xSize, landPlot.yPos + landPlot.ySize)
+                (landPlot.xPos - 1, landPlot.yPos - 1),
+                (landPlot.xPos + landPlot.xSize, landPlot.yPos - 1),
+                (landPlot.xPos - 1, landPlot.yPos + landPlot.ySize),
+                (landPlot.xPos + landPlot.xSize, landPlot.yPos + landPlot.ySize),
             ]
-            bottomLeft, bottomRight, topLeft, topRight = [Intersection(*corner) for corner in corners]
+            bottomLeft, bottomRight, topLeft, topRight = [
+                Intersection(*corner) for corner in corners
+            ]
 
             # Register intersections
             for possible_intersection in [bottomLeft, bottomRight, topLeft, topRight]:
-                self.intersections[possible_intersection.coordinates()] = possible_intersection
+                self.intersections[
+                    possible_intersection.coordinates()
+                ] = possible_intersection
 
             # Label intersections and roads
-            self.label_intersections(bottomLeft.coordinates(), bottomRight.coordinates())
+            self.label_intersections(
+                bottomLeft.coordinates(), bottomRight.coordinates()
+            )
             self.label_intersections(bottomLeft.coordinates(), topLeft.coordinates())
             self.label_intersections(topRight.coordinates(), bottomRight.coordinates())
             self.label_intersections(topRight.coordinates(), topLeft.coordinates())
@@ -812,7 +905,9 @@ class Landscape:
         stack = []
         visited = set()
 
-        for intersection_pos in self.intersections.keys(): # start with a random intersection
+        for (
+            intersection_pos
+        ) in self.intersections.keys():  # start with a random intersection
             stack.append(intersection_pos)
             break
 
@@ -822,37 +917,49 @@ class Landscape:
                 continue
             visited.add((xPos, yPos))
 
-            for xCoord in range(xPos+1, self.xSize+2): # search for east neighbour
+            for xCoord in range(xPos + 1, self.xSize + 2):  # search for east neighbour
                 if self.landscapeMatrix[yPos][xCoord] == "IS":
                     if (xCoord, yPos) not in visited:
-                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
+                        self.connect_intersections(
+                            self.intersections[(xPos, yPos)],
+                            self.intersections[(xCoord, yPos)],
+                        )
                         stack.append((xCoord, yPos))
                     break
                 elif self.landscapeMatrix[yPos][xCoord] == "LP":
                     break
 
-            for xCoord in range(xPos-1, -1, -1): # search for west neighbour
+            for xCoord in range(xPos - 1, -1, -1):  # search for west neighbour
                 if self.landscapeMatrix[yPos][xCoord] == "IS":
                     if (xCoord, yPos) not in visited:
-                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xCoord, yPos)])
+                        self.connect_intersections(
+                            self.intersections[(xPos, yPos)],
+                            self.intersections[(xCoord, yPos)],
+                        )
                         stack.append((xCoord, yPos))
                     break
                 elif self.landscapeMatrix[yPos][xCoord] == "LP":
                     break
 
-            for yCoord in range(yPos+1, self.ySize+2): # search for north neighbour
+            for yCoord in range(yPos + 1, self.ySize + 2):  # search for north neighbour
                 if self.landscapeMatrix[yCoord][xPos] == "IS":
                     if (xPos, yCoord) not in visited:
-                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
+                        self.connect_intersections(
+                            self.intersections[(xPos, yPos)],
+                            self.intersections[(xPos, yCoord)],
+                        )
                         stack.append((xPos, yCoord))
                     break
                 elif self.landscapeMatrix[yCoord][xPos] == "LP":
                     break
 
-            for yCoord in range(yPos-1, -1, -1): # search for south neighbour
+            for yCoord in range(yPos - 1, -1, -1):  # search for south neighbour
                 if self.landscapeMatrix[yCoord][xPos] == "IS" and (xPos, yCoord):
                     if (xPos, yCoord) not in visited:
-                        self.connect_intersections(self.intersections[(xPos, yPos)], self.intersections[(xPos, yCoord)])
+                        self.connect_intersections(
+                            self.intersections[(xPos, yPos)],
+                            self.intersections[(xPos, yCoord)],
+                        )
                         stack.append((xPos, yCoord))
                     break
                 elif self.landscapeMatrix[yCoord][xPos] == "LP":
@@ -864,7 +971,9 @@ class Landscape:
         """
 
         # Get a list of max vehicle counts for each road
-        maxVehicleCounts: list[int] = [self.roads[i].maxVehicleCount for i in range(len(self.roads))]
+        maxVehicleCounts: list[int] = [
+            self.roads[i].maxVehicleCount for i in range(len(self.roads))
+        ]
 
         return maxVehicleCounts
 
@@ -874,18 +983,39 @@ class Landscape:
         """
 
         # Map every road ID to the neighbours list and traffic light pattern of the matching road's road-end intersection
-        roadID_to_intersection_info: dict[int, list[list[tuple[int, int]], list[int], int]] = {}
+        roadID_to_intersection_info: dict[
+            int, list[list[tuple[int, int]], list[int], int]
+        ] = {}
         for intersection in self.intersections.values():
             neighbour_road_start_pos_list: list[tuple[int, int]] = [
-                self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()].startPosReal
+                self.roadmap[neighbour_intersection.coordinates()][
+                    intersection.coordinates()
+                ].startPosReal
                 for neighbour_intersection in intersection.neighbours
-            ]            
+            ]
             for neighbour_intersection in intersection.neighbours:
-                road = self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()]
+                road = self.roadmap[neighbour_intersection.coordinates()][
+                    intersection.coordinates()
+                ]
                 roadID_to_intersection_info[road.roadID] = [
-                    neighbour_road_start_pos_list, 
-                    intersection.trafficLightPattern, # trafficLightPattern could be None
-                    intersection.trafficLightDuration # -1 if None
+                    neighbour_road_start_pos_list,
+                    intersection.trafficLightPattern,  # trafficLightPattern could be None
+                    intersection.trafficLightDuration,  # -1 if None
                 ]
 
         return roadID_to_intersection_info
+
+    def precomputeUnityCache(self):
+        self.unityCache: list[tuple[tuple[int, int], list[int], list[int]]] = []
+        for inter in self.intersections.values():
+            id = inter.coordinates()
+            enterRoadIDs: list[int] = []
+            exitRoadIDs: list[int] = []
+            for neighbor in inter.neighbours:
+                enterRoadIDs.append(
+                    self.roadmap[neighbor.coordinates()][inter.coordinates()].roadID
+                )
+                exitRoadIDs.append(
+                    self.roadmap[inter.coordinates()][neighbor.coordinates()].roadID
+                )
+            self.unityCache.append((id, enterRoadIDs, exitRoadIDs))
