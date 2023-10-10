@@ -89,7 +89,7 @@ class Intersection:
 
         # Traffic light info
         self.trafficLightPattern: list[int] = None
-        self.trafficLightDuration: int = 5 # how long each phase lasts, in seconds
+        self.trafficLightDuration: int = -1 # how long each phase lasts, in seconds
 
         # Lookup table for quickly accessing the when a particular road gets the green light
         self.trafficLightLookup: dict[Intersection, int] = {}
@@ -865,7 +865,7 @@ class Landscape:
 
         # Get a list of max vehicle counts for each road
         maxVehicleCounts: list[int] = [self.roads[i].maxVehicleCount for i in range(len(self.roads))]
-        
+
         return maxVehicleCounts
 
     def calculateIntersectionData(self):
@@ -874,7 +874,7 @@ class Landscape:
         """
 
         # Map every road ID to the neighbours list and traffic light pattern of the matching road's road-end intersection
-        roadID_to_intersection_info: dict[int, list[list[tuple[int, int]], list[int]]] = {}
+        roadID_to_intersection_info: dict[int, list[list[tuple[int, int]], list[int], int]] = {}
         for intersection in self.intersections.values():
             neighbour_road_start_pos_list: list[tuple[int, int]] = [
                 self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()].startPosReal
@@ -883,7 +883,9 @@ class Landscape:
             for neighbour_intersection in intersection.neighbours:
                 road = self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()]
                 roadID_to_intersection_info[road.roadID] = [
-                    neighbour_road_start_pos_list, intersection.trafficLightPattern # trafficLightPattern could be None
+                    neighbour_road_start_pos_list, 
+                    intersection.trafficLightPattern, # trafficLightPattern could be None
+                    intersection.trafficLightDuration # -1 if None
                 ]
 
         return roadID_to_intersection_info
