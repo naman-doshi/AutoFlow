@@ -857,3 +857,33 @@ class Landscape:
                     break
                 elif self.landscapeMatrix[yCoord][xPos] == "LP":
                     break
+
+    def calculateRoadData(self):
+        """
+        Calculates all the data regarding the roads that are sent to Unity.
+        """
+
+        # Get a list of max vehicle counts for each road
+        maxVehicleCounts: list[int] = [self.roads[i].maxVehicleCount for i in range(len(self.roads))]
+        
+        return maxVehicleCounts
+
+    def calculateIntersectionData(self):
+        """
+        Calculates all the data regarding the intersections that are sent to Unity.
+        """
+
+        # Map every road ID to the neighbours list and traffic light pattern of the matching road's road-end intersection
+        roadID_to_intersection_info: dict[int, list[list[tuple[int, int]], list[int]]] = {}
+        for intersection in self.intersections.values():
+            neighbour_road_start_pos_list: list[tuple[int, int]] = [
+                self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()].startPosReal
+                for neighbour_intersection in intersection.neighbours
+            ]            
+            for neighbour_intersection in intersection.neighbours:
+                road = self.roadmap[neighbour_intersection.coordinates()][intersection.coordinates()]
+                roadID_to_intersection_info[road.roadID] = [
+                    neighbour_road_start_pos_list, intersection.trafficLightPattern # trafficLightPattern could be None
+                ]
+
+        return roadID_to_intersection_info
