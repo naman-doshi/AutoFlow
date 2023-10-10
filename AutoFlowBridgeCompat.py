@@ -61,8 +61,10 @@ LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fi
 
 # Generate virtual landscape
 landscape = Landscape(*LANDSCAPE_SIZE)
-# landscape.generate_new_landscape(desiredFeatures=LANDSCAPE_FEATURES, filler=LANDSCAPE_FILLER)
-landscape.generate_new_landscape()
+landscape.generate_new_landscape(
+    desiredFeatures=LANDSCAPE_FEATURES, filler=LANDSCAPE_FILLER
+)
+# landscape.generate_new_landscape()
 
 # There must be at least one road within the map area
 assert len(landscape.intersections) > 4

@@ -101,9 +101,9 @@ class IntersectionMessage:
 
     def __dict__(self):
         return {
-            "id": self.id.__dict__(),
             "enterRoadIDs": self.enterRoadIDs,
             "exitRoadIDs": self.exitRoadIDs,
+            "id": self.id.__dict__(),
         }
 
     def serialize(self):

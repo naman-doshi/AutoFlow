@@ -1006,7 +1006,7 @@ class Landscape:
         return roadID_to_intersection_info
 
     def precomputeUnityCache(self):
-        self.unityCache: list[tuple[tuple[int, int], list[int], list[int]]] = []
+        self.unityCache: list[tuple[tuple[float, float], list[int], list[int]]] = []
         for inter in self.intersections.values():
             id = inter.coordinates()
             enterRoadIDs: list[int] = []
