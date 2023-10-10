@@ -290,7 +290,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     routes: list[list[tuple[float, float]]] = []
 
     # Get a sorted list of vehicles
-    sorted_vehicles = sorted_vehicles(autoflow_vehicles, 1, -1)
+    sorted_vehicles = sortVehicles(autoflow_vehicles, 1, -1)
 
     # Set up space-time reservation table 
     reservation_table: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
