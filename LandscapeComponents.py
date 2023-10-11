@@ -270,39 +270,39 @@ class Road:
         # Adjust real starting & ending positions according to direction
         if self.direction == "N":
             self.startPosReal = (
-                self.startPosReal[0] + CELL_SIZE_METRES / 4,
-                self.startPosReal[1] + CELL_SIZE_METRES / 2,
+                self.startPosReal[0] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
+                self.startPosReal[1] + CELL_SIZE_METRES/2
             )
             self.endPosReal = (
-                self.endPosReal[0] + CELL_SIZE_METRES / 4,
-                self.endPosReal[1] - CELL_SIZE_METRES / 2,
+                self.endPosReal[0] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
+                self.endPosReal[1] - CELL_SIZE_METRES/2
             )
         elif self.direction == "S":
             self.startPosReal = (
-                self.startPosReal[0] - CELL_SIZE_METRES / 4,
-                self.startPosReal[1] - CELL_SIZE_METRES / 2,
+                self.startPosReal[0] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
+                self.startPosReal[1] - CELL_SIZE_METRES/2
             )
             self.endPosReal = (
-                self.endPosReal[0] - CELL_SIZE_METRES / 4,
-                self.endPosReal[1] + CELL_SIZE_METRES / 2,
+                self.endPosReal[0] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
+                self.endPosReal[1] + CELL_SIZE_METRES/2
             )
         elif self.direction == "E":
             self.startPosReal = (
-                self.startPosReal[0] + CELL_SIZE_METRES / 2,
-                self.startPosReal[1] - CELL_SIZE_METRES / 4,
+                self.startPosReal[0] + CELL_SIZE_METRES/2, 
+                self.startPosReal[1] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
             )
             self.endPosReal = (
-                self.endPosReal[0] - CELL_SIZE_METRES / 2,
-                self.endPosReal[1] - CELL_SIZE_METRES / 4,
+                self.endPosReal[0] - CELL_SIZE_METRES/2, 
+                self.endPosReal[1] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
             )
         elif self.direction == "W":
             self.startPosReal = (
-                self.startPosReal[0] - CELL_SIZE_METRES / 2,
-                self.startPosReal[1] + CELL_SIZE_METRES / 4,
+                self.startPosReal[0] - CELL_SIZE_METRES/2, 
+                self.startPosReal[1] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
             )
             self.endPosReal = (
-                self.endPosReal[0] + CELL_SIZE_METRES / 2,
-                self.endPosReal[1] + CELL_SIZE_METRES / 4,
+                self.endPosReal[0] + CELL_SIZE_METRES/2, 
+                self.endPosReal[1] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
             )
 
         # Set real length and speed limit
