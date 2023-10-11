@@ -18,6 +18,7 @@ class VehicleInitMessage:
     rotation: float
     emissionRate: float
     useAutoFlow: bool
+    passengerCount: int
 
     def __dict__(self):
         return {
@@ -26,7 +27,7 @@ class VehicleInitMessage:
             "rotation": self.rotation,
             "emissionRate": self.emissionRate,
             "useAutoFlow": self.useAutoFlow,
-            "type": "VehicleInitMessage",
+            "passengerCount": self.passengerCount,
         }
 
     def serialize(self):
@@ -204,7 +205,7 @@ async def handler(websocket: WebSocketServerProtocol):
     print(USE_AUTOFLOW)
 
     inp: tuple[
-        dict[int, tuple[float, float]],
+        dict[int, tuple[float, float, int]],
         Landscape,
         dict[int, list[tuple[float, float, float]]],
         list[Vehicle],
@@ -212,9 +213,16 @@ async def handler(websocket: WebSocketServerProtocol):
 
     # Initial scene
     vehicleInits = []
-    for id, pos in inp[0].items():
+    for id, posAndPass in inp[0].items():
         vehicleInits.append(
-            VehicleInitMessage(id, pos, 0, inp[3][id].emissionRate, USE_AUTOFLOW)
+            VehicleInitMessage(
+                id,
+                (posAndPass[0], posAndPass[1]),
+                0,
+                inp[3][id].emissionRate,
+                USE_AUTOFLOW,
+                posAndPass[2],
+            )
         )
 
     flatLandscapeMatrix = []

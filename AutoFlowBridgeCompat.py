@@ -20,8 +20,8 @@ from copy import deepcopy
 # =========================================
 
 # Literals
-COMMERCIAL_BLOCK = (
-    LandPlotDescriptor((2, 2), (2, 2), False)
+COMMERCIAL_BLOCK = LandPlotDescriptor(
+    (2, 2), (2, 2), False
 )  # randomly oriented 2x2 land blocks x10
 HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor(
     (5, 8), (1, 1), False
@@ -40,7 +40,7 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 # Ofc remove these 2 lines of comments
 
 
-#================ INPUTS =================
+# ================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
     (COMMERCIAL_BLOCK, 10),
@@ -49,10 +49,9 @@ LANDSCAPE_FEATURES = [
     # (SCHOOL_ZONE, 2),
     # (LARGE_PARK_AREA, 1)
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None) # 1x1 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
-#=========================================
-
+# =========================================
 
 
 # ===============================================================================================
@@ -323,7 +322,7 @@ landscape.precomputeUnityCache()
 def outputToBridge(
     useAutoflow: bool,
 ) -> tuple[
-    dict[int, tuple[float, float]],
+    dict[int, tuple[float, float, int]],
     Landscape,
     dict[int, list[tuple[float, float, float]]],
     list[Vehicle],
@@ -336,13 +335,14 @@ def outputToBridge(
         )
         routes2 = deepcopy(autoflow_vehicle_routes)
 
-        initPos: dict[int, tuple[float, float]] = {}
+        initPosAndPass: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(autoflow_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
+            pos = getRealPositionOnRoad(vehicle.road, vehicle.position)
+            initPosAndPass[i] = pos + (vehicle.passengerCount,)
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes2):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
-        return (initPos, landscape, routes, autoflow_vehicles)
+        return (initPosAndPass, landscape, routes, autoflow_vehicles)
     else:
         # 100% Selfish
         selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
@@ -351,10 +351,11 @@ def outputToBridge(
         )
         routes1 = deepcopy(selfish_vehicle_routes)
 
-        initPos: dict[int, tuple[float, float]] = {}
+        initPosAndPass: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(selfish_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
+            pos = getRealPositionOnRoad(vehicle.road, vehicle.position)
+            initPosAndPass[i] = pos + (vehicle.passengerCount,)
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes1):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
-        return (initPos, landscape, routes, selfish_vehicles)
+        return (initPosAndPass, landscape, routes, selfish_vehicles)
