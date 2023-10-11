@@ -21,8 +21,7 @@ from copy import deepcopy
 
 # Literals
 COMMERCIAL_BLOCK = (
-    LandPlotDescriptor((2, 2), (2, 2), False),
-    5,
+    LandPlotDescriptor((2, 2), (2, 2), False)
 )  # randomly oriented 2x2 land blocks x10
 HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor(
     (5, 8), (1, 1), False
