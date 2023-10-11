@@ -98,12 +98,16 @@ class IntersectionMessage:
     id: Vector2Message
     enterRoadIDs: list[int]
     exitRoadIDs: list[int]
+    pattern: list[int]
+    greenDuration: float
 
     def __dict__(self):
         return {
+            "id": self.id.__dict__(),
             "enterRoadIDs": self.enterRoadIDs,
             "exitRoadIDs": self.exitRoadIDs,
-            "id": self.id.__dict__(),
+            "pattern": self.pattern,
+            "greenDuration": self.greenDuration,
         }
 
     def serialize(self):
@@ -229,7 +233,7 @@ async def handler(websocket: WebSocketServerProtocol):
         )
 
     intersections = [
-        IntersectionMessage(Vector2Message(i[0][0], i[0][1]), i[1], i[2])
+        IntersectionMessage(Vector2Message(i[0][0], i[0][1]), i[1], i[2], i[3], i[4])
         for i in inp[1].unityCache
     ]
 

@@ -141,7 +141,7 @@ class Intersection:
                 ] = i
 
             # Randomise phase duration between 2-5 seconds
-            self.trafficLightDuration = randint(2, 5)
+            self.trafficLightDuration = randint(8, 15)
 
             # Calculate traffic passthrough rate for every road
             for intersection in self.neighbours:
@@ -1006,7 +1006,9 @@ class Landscape:
         return roadID_to_intersection_info
 
     def precomputeUnityCache(self):
-        self.unityCache: list[tuple[tuple[float, float], list[int], list[int]]] = []
+        self.unityCache: list[
+            tuple[tuple[float, float], list[int], list[int], list[int], float]
+        ] = []
         for inter in self.intersections.values():
             id = inter.coordinates()
             enterRoadIDs: list[int] = []
@@ -1018,4 +1020,12 @@ class Landscape:
                 exitRoadIDs.append(
                     self.roadmap[inter.coordinates()][neighbor.coordinates()].roadID
                 )
-            self.unityCache.append((id, enterRoadIDs, exitRoadIDs))
+            self.unityCache.append(
+                (
+                    id,
+                    enterRoadIDs,
+                    exitRoadIDs,
+                    inter.trafficLightPattern,
+                    inter.trafficLightDuration,
+                )
+            )
