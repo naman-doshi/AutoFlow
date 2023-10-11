@@ -18,7 +18,7 @@ from copy import deepcopy
 #=========================================
 
 # Literals
-COMMERCIAL_BLOCK = LandPlotDescriptor((2, 2), (1, 1)), 5 # randomly oriented 2x1 land blocks x5
+COMMERCIAL_BLOCK = LandPlotDescriptor((2, 2), (2, 2), False) # randomly oriented 2x2 land blocks x10
 HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor((5, 8), (1, 1), False) # north-facing horizontal residential rows of 5-8 continuous land blocks x4
 VERTICAL_RESIDENTIAL_ROW = LandPlotDescriptor((1, 1), (5, 8), False) # east-facing vertical residential rows of 5-8 continuous land blocks x4
 SCHOOL_ZONE = LandPlotDescriptor((4, 4), (3, 3)) # randomly oriented 4x3 school zones x2
@@ -32,7 +32,7 @@ LARGE_PARK_AREA = LandPlotDescriptor((4, 6), (4, 6)) # randomly oriented (4-6)x(
 #================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    # (COMMERCIAL_BLOCK, 5),
+    (COMMERCIAL_BLOCK, 10),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
