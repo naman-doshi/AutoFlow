@@ -245,6 +245,8 @@ class Road:
     One is subtracted due to the fact that the road starts and ends at the centre of two intersections.
     """
 
+    offset = 0.1 # offsets vehicles towards the middle line of a road tile, ranges from 0 to 0.25
+
     def __init__(self, start: tuple[int, int], end: tuple[int, int]) -> None:
         self.roadID: int = (
             None  # index within ACTIVELANDSCAPE.roads, assigned by ACTIVELANDSCAPE
