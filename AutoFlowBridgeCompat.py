@@ -21,21 +21,27 @@ from copy import deepcopy
 
 
 # Literals
-COMMERCIAL_BLOCK = LandPlotDescriptor((2, 2), (2, 2), False)  # 2x2 land blocks
-COMMERCIAL_BLOCK_LARGE = LandPlotDescriptor((3, 2), (3, 3), False)  # 3x3 land blocks
+COMMERCIAL_BLOCK = (
+    LandPlotDescriptor((2, 2), (2, 2), False)
+)  # 2x2 land blocks
+COMMERCIAL_BLOCK_LARGE = (
+    LandPlotDescriptor((3, 2), (3, 3), False)
+)  # 3x3 land blocks
 HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor(
     (5, 8), (1, 1), False
 )  # north-facing horizontal residential rows of 5-8 continuous land blocks
 VERTICAL_RESIDENTIAL_ROW = LandPlotDescriptor(
     (1, 1), (5, 8), False
 )  # east-facing vertical residential rows of 5-8 continuous land blocks
-SCHOOL_ZONE = LandPlotDescriptor((4, 4), (3, 3))  # randomly oriented 4x3 school zones
+SCHOOL_ZONE = LandPlotDescriptor(
+    (4, 4), (3, 3)
+)  # randomly oriented 4x3 school zones
 LARGE_PARK_AREA = LandPlotDescriptor(
     (4, 6), (4, 6)
 )  # randomly oriented (4-6)x(4-6) park area
 
 
-# ================ INPUTS =================
+#================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
     (COMMERCIAL_BLOCK, 20),
@@ -45,9 +51,10 @@ LANDSCAPE_FEATURES = [
     # (SCHOOL_ZONE, 2),
     # (LARGE_PARK_AREA, 1)
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None) # 1x1 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
-# =========================================
+#=========================================
+
 
 
 # ===============================================================================================
@@ -56,7 +63,9 @@ LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fi
 
 # Generate virtual landscape
 landscape = Landscape(*LANDSCAPE_SIZE)
-landscape.generate_new_landscape(desiredFeatures=[], filler=LANDSCAPE_FILLER)
+landscape.generate_new_landscape(
+    desiredFeatures=[], filler=LANDSCAPE_FILLER
+)
 # landscape.generate_new_landscape()
 
 # There must be at least one road within the map area
@@ -316,7 +325,7 @@ landscape.precomputeUnityCache()
 def outputToBridge(
     useAutoflow: bool,
 ) -> tuple[
-    dict[int, tuple[float, float, int]],
+    dict[int, tuple[float, float]],
     Landscape,
     dict[int, list[tuple[float, float, float]]],
     list[Vehicle],
@@ -329,11 +338,9 @@ def outputToBridge(
         )
         routes2 = deepcopy(autoflow_vehicle_routes)
 
-        initPos: dict[int, tuple[float, float, int]] = {}
+        initPos: dict[int, tuple[float, float]] = {}
         for i, vehicle in enumerate(autoflow_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle.passengerCount,
-            )
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes2):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
@@ -346,11 +353,9 @@ def outputToBridge(
         )
         routes1 = deepcopy(selfish_vehicle_routes)
 
-        initPos: dict[int, tuple[float, float, int]] = {}
+        initPos: dict[int, tuple[float, float]] = {}
         for i, vehicle in enumerate(selfish_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle.passengerCount,
-            )
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position)
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes1):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
