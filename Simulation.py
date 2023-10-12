@@ -19,12 +19,24 @@ from copy import deepcopy
 
 
 # Literals
-COMMERCIAL_BLOCK = LandPlotDescriptor((2, 2), (2, 2), False) # 2x2 land blocks
-COMMERCIAL_BLOCK_LARGE = LandPlotDescriptor((3, 3), (3, 3), False) # 3x3 land blocks
-HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor((5, 8), (1, 1), False) # north-facing horizontal residential rows of 5-8 continuous land blocks
-VERTICAL_RESIDENTIAL_ROW = LandPlotDescriptor((1, 1), (5, 8), False) # east-facing vertical residential rows of 5-8 continuous land blocks
-SCHOOL_ZONE = LandPlotDescriptor((4, 4), (3, 3)) # randomly oriented 4x3 school zones
-LARGE_PARK_AREA = LandPlotDescriptor((4, 6), (4, 6)) # randomly oriented (4-6)x(4-6) park area
+COMMERCIAL_BLOCK = (
+    LandPlotDescriptor((2, 2), (2, 2), False)
+)  # 2x2 land blocks
+COMMERCIAL_BLOCK_LARGE = (
+    LandPlotDescriptor((3, 3), (3, 3), False)
+)  # 3x3 land blocks
+HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor(
+    (5, 8), (1, 1), False
+)  # north-facing horizontal residential rows of 5-8 continuous land blocks
+VERTICAL_RESIDENTIAL_ROW = LandPlotDescriptor(
+    (1, 1), (5, 8), False
+)  # east-facing vertical residential rows of 5-8 continuous land blocks
+SCHOOL_ZONE = LandPlotDescriptor(
+    (4, 4), (3, 3)
+)  # randomly oriented 4x3 school zones
+LARGE_PARK_AREA = LandPlotDescriptor(
+    (4, 6), (4, 6)
+)  # randomly oriented (4-6)x(4-6) park area
 
 # Leaving some space here so the exact definitions won't be visible if you scroll down
 # Ofc remove these 2 lines of comments
