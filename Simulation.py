@@ -102,17 +102,35 @@ AVERAGE_ROAD_SPEED_MPS = AVERAGE_ROAD_SPEED * 1000 / 3600
 # Spawn Vehicle Agents
 # ===============================================================================================
 
+def getPositions(road: Road): # returns all the available positions on a road for vehicle spawning
+    positions = []
+    pos = 0
+    increment = 1 / (road.cellSpan * 4)
+    while pos < 1:
+        positions.append(pos)
+        pos += increment
+    #positions.append(1)
+    #print(positions)
+    return positions
+
 # Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
-available_coordinates = [
-    [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
-        if (i, j) in landscape.coordToRoad
-    ],
-    [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
-        if (i, j) in landscape.coordToRoad
-    ]
-]
+# available_coordinates = [
+#     [
+#         (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
+#         if (i, j) in landscape.coordToRoad
+#     ],
+#     [
+#         (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
+#         if (i, j) in landscape.coordToRoad
+#     ]
+# ]
+available_coordinates = [[], []]
+for i in range(1, (landscape.xSize+1)//2):
+    for j in range(1, landscape.ySize+1):
+        if (i, j) in landscape.coordToRoad:
+            for pos in getPositions(landscape.coordToRoad[(i, j)][0]):
+                for pool in range(2):
+                    available_coordinates[pool].append(((i, j), pos))
 
 # Generate a valid vehicle count
 MAX_VEHICLE_COUNT = len(available_coordinates[0]) * 2
@@ -165,10 +183,12 @@ for vehicle in vehicles:
 
     # Select random coordinate from pool, and determine which road it is on
     coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
-    coord = available_coordinates[poolID][coordIndex]
+    #coord = available_coordinates[poolID][coordIndex]
+    coord, position = available_coordinates[poolID][coordIndex]
     road = landscape.coordToRoad[coord][poolID]
 
-    vehicle.setLocation(road, road.positionTable[coord]) # set vehicle's starting location
+    #vehicle.setLocation(road, road.positionTable[coord]) 
+    vehicle.setLocation(road, position) # set vehicle's starting location
 
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
 
@@ -176,16 +196,23 @@ for road in landscape.roads: # sort vehicle stacks, cars at the front are at the
     road.vehicleStack = deque(sorted(road.vehicleStack, key = lambda vehicle: vehicle.position, reverse=True))
 
 # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
-available_coordinates = [
-    [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
-        if (i, j) in landscape.coordToRoad
-    ],
-    [
-        (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
-        if (i, j) in landscape.coordToRoad
-    ]
-]
+# available_coordinates = [
+#     [
+#         (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
+#         if (i, j) in landscape.coordToRoad
+#     ],
+#     [
+#         (i, j) for i in range(1, landscape.xSize+1) for j in range(1, landscape.ySize+1)
+#         if (i, j) in landscape.coordToRoad
+#     ]
+# ]
+available_coordinates = [[], []]
+for i in range((landscape.xSize+1)//2, landscape.xSize+1):
+    for j in range(1, landscape.ySize+1):
+        if (i, j) in landscape.coordToRoad:
+            for pos in getPositions(landscape.coordToRoad[(i, j)][0]):
+                for pool in range(2):
+                    available_coordinates[pool].append(((i, j), pos))
 
 # Assign random destination coordinates to all vehicles
 for vehicle in vehicles:
@@ -197,10 +224,12 @@ for vehicle in vehicles:
 
     # Select random coordinate from pool, and determine which road it is on
     coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
-    coord = available_coordinates[poolID][coordIndex]
+    #coord = available_coordinates[poolID][coordIndex]
+    coord, position = available_coordinates[poolID][coordIndex]
     road = landscape.coordToRoad[coord][poolID]
 
-    vehicle.setDestination(road, road.positionTable[coord]) # set vehicle's destination location
+    #vehicle.setDestination(road, road.positionTable[coord]) 
+    vehicle.setDestination(road, position) # set vehicle's destination location
 
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
 
