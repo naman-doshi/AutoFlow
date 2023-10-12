@@ -25,7 +25,7 @@ COMMERCIAL_BLOCK = (
     LandPlotDescriptor((2, 2), (2, 2), False)
 )  # 2x2 land blocks
 COMMERCIAL_BLOCK_LARGE = (
-    LandPlotDescriptor((3, 2), (3, 3), False)
+    LandPlotDescriptor((3, 3), (3, 3), False)
 )  # 3x3 land blocks
 HORIZONTAL_RESIDENTIAL_ROW = LandPlotDescriptor(
     (5, 8), (1, 1), False
