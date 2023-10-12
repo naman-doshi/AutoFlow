@@ -125,16 +125,21 @@ def getPositions(road: Road): # returns all the available positions on a road fo
 #     ]
 # ]
 available_coordinates = [[], []]
+seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
 for i in range(1, (landscape.xSize+1)//2):
     for j in range(1, landscape.ySize+1):
         if (i, j) in landscape.coordToRoad:
-            for pos in getPositions(landscape.coordToRoad[(i, j)][0]):
-                for pool in range(2):
-                    available_coordinates[pool].append(((i, j), pos))
+            for pool in range(2):
+                road = landscape.coordToRoad[(i, j)][pool]
+                if (road.start, road.end) not in seen_roads:
+                    seen_roads.add((road.start, road.end))
+                    for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
+                        available_coordinates[pool].append(((i, j), pos))
 
 # Generate a valid vehicle count
 MAX_VEHICLE_COUNT = len(available_coordinates[0]) * 2
 print(MAX_VEHICLE_COUNT)
+print()
 VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT*9/10), MAX_VEHICLE_COUNT)
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
@@ -207,12 +212,20 @@ for road in landscape.roads: # sort vehicle stacks, cars at the front are at the
 #     ]
 # ]
 available_coordinates = [[], []]
-for i in range((landscape.xSize+1)//2, landscape.xSize+1):
+seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
+for i in range(1, (landscape.xSize+1)//2):
     for j in range(1, landscape.ySize+1):
         if (i, j) in landscape.coordToRoad:
-            for pos in getPositions(landscape.coordToRoad[(i, j)][0]):
-                for pool in range(2):
-                    available_coordinates[pool].append(((i, j), pos))
+            for pool in range(2):
+                road = landscape.coordToRoad[(i, j)][pool]
+                if (road.start, road.end) not in seen_roads:
+                    seen_roads.add((road.start, road.end))
+                    for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
+                        available_coordinates[pool].append(((i, j), pos))
+
+print(len(vehicles))
+print(len(available_coordinates[0])*2)
+print()
 
 # Assign random destination coordinates to all vehicles
 for vehicle in vehicles:
@@ -329,14 +342,14 @@ def calculate_total_distance(route: list[tuple[float, float]]):
     return total_distance
 
 # Compare routes
-for i in range(VEHICLE_COUNT):
-    if routes1[i] != routes2[i]:
-        print(f"""
-Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
-Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
-        )
-        print(routes1[i])
-        print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
-        print(routes2[i])
-        print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
-        print()
+# for i in range(VEHICLE_COUNT):
+#     if routes1[i] != routes2[i]:
+#         print(f"""
+# Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
+# Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
+#         )
+#         print(routes1[i])
+#         print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
+#         print(routes2[i])
+#         print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
+#         print()
