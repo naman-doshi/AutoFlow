@@ -63,3 +63,10 @@ print()
 #     testMatrix[y][x] += 1
 # for i in range(1, len(testMatrix)-1):
 #     print(testMatrix[i][1:-1])
+
+seen_roads = set()
+for road in landscape.roads:
+    if (road.start, road.end) in seen_roads:
+        print("bad")
+    seen_roads.add((road.start, road.end))
+print(seen_roads)

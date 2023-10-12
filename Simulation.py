@@ -89,8 +89,8 @@ road_speeds = 0
 road_count = 0
 for road in landscape.roads:
     if (
-        1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize or
-        1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize
+        (1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize) or
+        (1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize)
     ):
         road_speeds += road.speedLimit
         road_count += 1
