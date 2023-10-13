@@ -255,26 +255,32 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
 def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float, passengerCountWeighting: float):
     """
-    The trainable priority assigning function of AutoFlow.
+    Sorts vehicles in-place baseed on a trainable priority function.
     Priorities are calculated based on the NORMALISED emission rate and passenger count of each vehicle.
 
     NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
 
-    ans = list(sorted(
-        autoflow_vehicles, 
-        key = lambda vehicle: (
-            
+    autoflow_vehicles.sort(
+        key = lambda vehicle: (            
             emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
             passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT
         )
-    ))
+    )
+
+    # ans = list(sorted(
+    #     autoflow_vehicles, 
+    #     key = lambda vehicle: (
+    #         emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
+    #         passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT
+    #     )
+    # ))
 
     # print('Vehicles:')
     # for vehicle in ans:
     #     print(vehicle.emissionRate, vehicle.passengerCount)
 
-    return ans
+    # return ans
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
@@ -297,14 +303,14 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     routes: list[list[tuple[float, float]]] = []
 
-    # Get a sorted list of vehicles
-    sorted_vehicles = sortVehicles(autoflow_vehicles, -1, -1)
+    # Sort the list of vehicles
+    sortVehicles(autoflow_vehicles, -1, -1)
 
     # Set up space-time reservation table 
     reservation_table: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
     # reservation_table[roadID][timestamp in seconds] => number of vehicles on road at timestamp
 
-    for vehicle in sorted_vehicles:
+    for vehicle in autoflow_vehicles:
 
         tiebreaker = 0 # tiebreaker value for when all costs are equal
 

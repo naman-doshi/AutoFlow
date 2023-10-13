@@ -248,28 +248,28 @@ for vehicle in vehicles:
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
 
 
-for row in landscape.landscapeMatrix:
-    print(row)
-# Checking for existence of double intersections
-di_exists = False
-for y in range(1, landscape.ySize+1):
-    for x in range(1, landscape.xSize+1):
-        if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
-            di_exists = True
-            break
-        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
-            di_exists = True
-            break
-        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
-            di_exists = True
-            break
-        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
-            di_exists = True
-            break
-    if di_exists:
-        break
-if di_exists:
-    print("Double intersection detected")
+# for row in landscape.landscapeMatrix:
+#     print(row)
+# # Checking for existence of double intersections
+# di_exists = False
+# for y in range(1, landscape.ySize+1):
+#     for x in range(1, landscape.xSize+1):
+#         if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
+#             di_exists = True
+#             break
+#     if di_exists:
+#         break
+# if di_exists:
+#     print("Double intersection detected")
 
 
 # ===============================================================================================
@@ -366,15 +366,16 @@ def calculate_total_distance(route: list[tuple[float, float]]):
         current_pos = route[i][0]
     return total_distance
 
-# Compare routes
-for i in range(VEHICLE_COUNT):
-    if routes1[i] != routes2[i]:
-        print(f"""
-Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
-Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
-        )
-        print(routes1[i])
-        print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
-        print(routes2[i])
-        print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
-        print()
+
+# # Compare routes, DEPRECATED
+# for i in range(VEHICLE_COUNT):
+#     if routes1[i] != routes2[i]:
+#         print(f"""
+# Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
+# Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
+#         )
+#         print(routes1[i])
+#         print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
+#         print(routes2[i])
+#         print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
+#         print()

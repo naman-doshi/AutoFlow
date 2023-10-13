@@ -36,10 +36,10 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (15, 15)
+LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (COMMERCIAL_BLOCK, 50),
-    (COMMERCIAL_BLOCK_LARGE, 25),
+    (COMMERCIAL_BLOCK, 20),
+    (COMMERCIAL_BLOCK_LARGE, 10),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
@@ -118,26 +118,31 @@ def getPositions(road: Road): # returns all the available positions on a road fo
 #         if (i, j) in landscape.coordToRoad
 #     ]
 # ]
-available_coordinates = [[], []]
-seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
-for i in range(1, (landscape.xSize+1)//2):
-    for j in range(1, landscape.ySize+1):
-        if (i, j) in landscape.coordToRoad:
-            for pool in range(2):
-                road = landscape.coordToRoad[(i, j)][pool]
-                if (road.start, road.end) not in seen_roads:
-                    seen_roads.add((road.start, road.end))
-                    for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
-                        available_coordinates[pool].append(((i, j), pos))
+available_coordinates: list[tuple[Road, float]] = []
+for road in landscape.roads:
+    for pos in getPositions(road):
+        realpos = getRealPositionOnRoad(road, pos)
+        if (CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * landscape.xSize // 2) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * landscape.ySize):
+            available_coordinates.append((road, pos))
+# seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
+# for i in range(1, (landscape.xSize+1)//2):
+#     for j in range(1, landscape.ySize+1):
+#         if (i, j) in landscape.coordToRoad:
+#             for pool in range(2):
+#                 road = landscape.coordToRoad[(i, j)][pool]
+#                 if (road.start, road.end) not in seen_roads:
+#                     seen_roads.add((road.start, road.end))
+#                     for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
+#                         available_coordinates[pool].append(((i, j), pos))
 
 # Generate a valid vehicle count
-MAX_VEHICLE_COUNT = len(available_coordinates[0]) * 2
+MAX_VEHICLE_COUNT = len(available_coordinates)
 print(MAX_VEHICLE_COUNT)
 print()
 VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT*9/10), MAX_VEHICLE_COUNT)
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
-assert VEHICLE_COUNT <= len(available_coordinates[0]) * 2
+assert VEHICLE_COUNT <= len(available_coordinates)
 
 # Array storing all vehicle agents
 vehicles: list[Vehicle] = []
@@ -172,27 +177,41 @@ while current_index < VEHICLE_COUNT:
     vehicles.append(vehicle)
     current_index += 1
 
+# for vehicle in vehicles:
+
+#     # Select random pool
+#     poolID = randint(0, 1)
+#     if len(available_coordinates[poolID]) == 0:
+#         poolID = 1-poolID # if current pool is used up, use the other pool
+
+#     # Select random coordinate from pool, and determine which road it is on
+#     coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
+#     #coord = available_coordinates[poolID][coordIndex]
+#     coord, position = available_coordinates[poolID][coordIndex]
+#     road = landscape.coordToRoad[coord][poolID]
+
+#     #vehicle.setLocation(road, road.positionTable[coord]) 
+#     vehicle.setLocation(road, position) # set vehicle's starting location
+
+#     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
+
 # Assign random starting coordinates to all vehicles
-for vehicle in vehicles:
-
-    # Select random pool
-    poolID = randint(0, 1)
-    if len(available_coordinates[poolID]) == 0:
-        poolID = 1-poolID # if current pool is used up, use the other pool
-
-    # Select random coordinate from pool, and determine which road it is on
-    coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
-    #coord = available_coordinates[poolID][coordIndex]
-    coord, position = available_coordinates[poolID][coordIndex]
-    road = landscape.coordToRoad[coord][poolID]
-
-    #vehicle.setLocation(road, road.positionTable[coord]) 
-    vehicle.setLocation(road, position) # set vehicle's starting location
-
-    available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
+for vehicle in vehicles:    
+    coordIndex = randint(0, len(available_coordinates)-1) # select random location from pool
+    road, position = available_coordinates[coordIndex] # unpack location into road and position
+    vehicle.setLocation(road, position) # Set vehicle's starting location    
+    available_coordinates.pop(coordIndex) # Remove assigned position from pool
 
 for road in landscape.roads: # sort vehicle stacks, cars at the front are at the front/start of the deque
     road.vehicleStack = deque(sorted(road.vehicleStack, key = lambda vehicle: vehicle.position, reverse=True))
+
+# Check that no vehicle spawns in overlapping positions
+seen = set()
+for vehicle in vehicles:
+    start = (vehicle.road.start, vehicle.road.end, vehicle.position)
+    if start in seen:
+        raise Exception("Overlapping vehicle positions")
+    seen.add(start)
 
 # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
 # available_coordinates = [
@@ -205,61 +224,73 @@ for road in landscape.roads: # sort vehicle stacks, cars at the front are at the
 #         if (i, j) in landscape.coordToRoad
 #     ]
 # ]
-available_coordinates = [[], []]
-seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
-for i in range(1, (landscape.xSize+1)//2):
-    for j in range(1, landscape.ySize+1):
-        if (i, j) in landscape.coordToRoad:
-            for pool in range(2):
-                road = landscape.coordToRoad[(i, j)][pool]
-                if (road.start, road.end) not in seen_roads:
-                    seen_roads.add((road.start, road.end))
-                    for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
-                        available_coordinates[pool].append(((i, j), pos))
+available_coordinates: list[tuple[Road, float]] = []
+for road in landscape.roads:
+    for pos in getPositions(road):
+        realpos = getRealPositionOnRoad(road, pos)
+        if (CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * landscape.xSize) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * landscape.ySize):
+            available_coordinates.append((road, pos))
+# available_coordinates = [[], []]
+# seen_roads: set[tuple[tuple[int, int], tuple[int, int]]] = set() # reset this every time
+# for i in range(1, (landscape.xSize+1)//2):
+#     for j in range(1, landscape.ySize+1):
+#         if (i, j) in landscape.coordToRoad:
+#             for pool in range(2):
+#                 road = landscape.coordToRoad[(i, j)][pool]
+#                 if (road.start, road.end) not in seen_roads:
+#                     seen_roads.add((road.start, road.end))
+#                     for pos in getPositions(landscape.coordToRoad[(i, j)][pool]):
+#                         available_coordinates[pool].append(((i, j), pos))
 
 print(len(vehicles))
-print(len(available_coordinates[0])*2)
+print(len(available_coordinates))
 print()
 
+# for vehicle in vehicles:
+
+#     # Select random pool
+#     poolID = randint(0, 1)
+#     if len(available_coordinates[poolID]) == 0:
+#         poolID = 1-poolID # if current pool is used up, use the other pool
+
+#     # Select random coordinate from pool, and determine which road it is on
+#     coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
+#     #coord = available_coordinates[poolID][coordIndex]
+#     coord, position = available_coordinates[poolID][coordIndex]
+#     road = landscape.coordToRoad[coord][poolID]
+
+#     #vehicle.setDestination(road, road.positionTable[coord]) 
+#     vehicle.setDestination(road, position) # set vehicle's destination location
+
+#     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
+
 # Assign random destination coordinates to all vehicles
-for vehicle in vehicles:
+for vehicle in vehicles:    
+    coordIndex = randint(0, len(available_coordinates)-1) # select random location from pool
+    road, position = available_coordinates[coordIndex] # unpack location into road and position
+    vehicle.setDestination(road, position) # Set vehicle's destination location    
+    available_coordinates.pop(coordIndex) # Remove assigned position from pool
 
-    # Select random pool
-    poolID = randint(0, 1)
-    if len(available_coordinates[poolID]) == 0:
-        poolID = 1-poolID # if current pool is used up, use the other pool
-
-    # Select random coordinate from pool, and determine which road it is on
-    coordIndex = randint(0, len(available_coordinates[poolID]) - 1)
-    #coord = available_coordinates[poolID][coordIndex]
-    coord, position = available_coordinates[poolID][coordIndex]
-    road = landscape.coordToRoad[coord][poolID]
-
-    #vehicle.setDestination(road, road.positionTable[coord]) 
-    vehicle.setDestination(road, position) # set vehicle's destination location
-
-    available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
-
-# # Checking for existence of double intersections
-# di_exists = False
-# for y in range(1, landscape.ySize+1):
-#     for x in range(1, landscape.xSize+1):
-#         if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
-#             di_exists = True
-#             break
-#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
-#             di_exists = True
-#             break
-#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
-#             di_exists = True
-#             break
-#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
-#             di_exists = True
-#             break
-#     if di_exists:
-#         break
-# if di_exists:
-#     print("Double intersection detected")
+# Checking for existence of double intersections
+di_exists = False
+for y in range(1, landscape.ySize+1):
+    for x in range(1, landscape.xSize+1):
+        if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
+            di_exists = True
+            break
+    if di_exists:
+        break
+if di_exists:
+    print("Double intersection detected")
 
 # ===============================================================================================
 # AutoFlow Distribution Functions
@@ -356,6 +387,26 @@ if __name__ == "__main__":
     #     print(route)
     #     print()
 
+    # Function for calculating total distance of a route
+    def calculate_total_distance(route: list[tuple[float, float]]):
+        if route == []:
+            return 0
+        total_distance = 0
+        current_pos = route[0][0]
+        for i in range(1, len(route)):
+            total_distance += euclideanDistance(current_pos, route[i][0])
+            current_pos = route[i][0]
+        return total_distance
+    
+#     for i in range(len(autoflow_vehicle_routes)):
+#         vehicle = autoflow_vehicles[i]
+#         print(f"""
+# Start: {getRealPositionOnRoad(vehicle.road, vehicle.position)},
+# Destination: {getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)}"""
+#          )
+#         print(autoflow_vehicle_routes[i])
+
+
 landscape.precomputeUnityCache()
 
 
@@ -377,18 +428,12 @@ def outputToBridge(
 
         initPos: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(autoflow_vehicles):
-            if len(routes2[i]) == 0:
-                initPos[i] = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition) + (
-                    vehicle.passengerCount,
-                )
-            else:
-                initPos[i] = routes2[i][0][0] + (
-                    vehicle.passengerCount,
-                )
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (vehicle.passengerCount, )
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes2):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
         return (initPos, landscape, routes, autoflow_vehicles)
+    
     else:
         # 100% Selfish
         selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
@@ -399,14 +444,7 @@ def outputToBridge(
 
         initPos: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(selfish_vehicles):
-            if len(routes1[i]) == 0:
-                initPos[i] = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition) + (
-                    vehicle.passengerCount,
-                )
-            else:
-                initPos[i] = routes1[i][0][0] + (
-                    vehicle.passengerCount,
-                )
+            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (vehicle.passengerCount, )
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes1):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
