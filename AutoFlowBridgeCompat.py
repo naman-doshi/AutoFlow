@@ -36,10 +36,10 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (10, 10)
+LANDSCAPE_SIZE = (15, 15)
 LANDSCAPE_FEATURES = [
-    (COMMERCIAL_BLOCK, 20),
-    (COMMERCIAL_BLOCK_LARGE, 10),
+    (COMMERCIAL_BLOCK, 50),
+    (COMMERCIAL_BLOCK_LARGE, 25),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
@@ -377,9 +377,14 @@ def outputToBridge(
 
         initPos: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(autoflow_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle.passengerCount,
-            )
+            if len(routes2[i]) == 0:
+                initPos[i] = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition) + (
+                    vehicle.passengerCount,
+                )
+            else:
+                initPos[i] = routes2[i][0][0] + (
+                    vehicle.passengerCount,
+                )
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes2):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
@@ -394,9 +399,14 @@ def outputToBridge(
 
         initPos: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(selfish_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle.passengerCount,
-            )
+            if len(routes2[i]) == 0:
+                initPos[i] = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition) + (
+                    vehicle.passengerCount,
+                )
+            else:
+                initPos[i] = routes2[i][0][0] + (
+                    vehicle.passengerCount,
+                )
         routes: dict[int, list[tuple[float, float, float]]] = {}
         for i, route in enumerate(routes1):
             routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]

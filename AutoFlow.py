@@ -55,7 +55,7 @@ def euclideanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> f
 # Main Functions
 # ===============================================================================================
 
-def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> tuple[list[list[tuple[float, float]]]]:
+def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> tuple[list[tuple[tuple[float, float], int]]]:
     """
     Compute the routes for selfish vehicles first, then AutoFlow vehicles.
     """

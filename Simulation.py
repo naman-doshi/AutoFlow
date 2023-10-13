@@ -367,14 +367,14 @@ def calculate_total_distance(route: list[tuple[float, float]]):
     return total_distance
 
 # Compare routes
-# for i in range(VEHICLE_COUNT):
-#     if routes1[i] != routes2[i]:
-#         print(f"""
-# Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
-# Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
-#         )
-#         print(routes1[i])
-#         print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
-#         print(routes2[i])
-#         print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
-#         print()
+for i in range(VEHICLE_COUNT):
+    if routes1[i] != routes2[i]:
+        print(f"""
+Start: {getRealPositionOnRoad(vehicles[i].road, vehicles[i].position)},
+Destination: {getRealPositionOnRoad(vehicles[i].destinationRoad, vehicles[i].destinationPosition)}"""
+        )
+        print(routes1[i])
+        print(f"Route1 distance: {calculate_total_distance(routes1[i])}")
+        print(routes2[i])
+        print(f"Route2 distance: {calculate_total_distance(routes2[i])}")
+        print()
