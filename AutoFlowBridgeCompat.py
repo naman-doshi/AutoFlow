@@ -100,8 +100,8 @@ def getPositions(
     road: Road,
 ):  # returns all the available positions on a road for vehicle spawning
     positions = []
-    pos = 1 / (road.cellSpan * 4)
-    increment = pos
+    pos = 0
+    increment = 1 / (road.cellSpan * 4)
     while pos < 1:
         positions.append(pos)
         pos += increment
@@ -381,11 +381,11 @@ if __name__ == "__main__":
     # print()
 
     # 100% Selfish
-    selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
-    selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-        selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
-    )
-    routes1 = deepcopy(selfish_vehicle_routes)
+    # selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
+    # selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
+    #     selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
+    # )
+    # routes1 = deepcopy(selfish_vehicle_routes)
 
     # for vehicle in selfish_vehicles:
     #     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
@@ -395,12 +395,18 @@ if __name__ == "__main__":
     #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
     #     )
 
-    print(len(selfish_vehicle_routes))
-    print()
+    # print(len(selfish_vehicle_routes))
+    # print()
 
     # for route in selfish_vehicle_routes:
     #     print(route)
     #     print()
+
+    # for i in range(len(selfish_vehicles)):
+    #     if len(routes1[i]) == 0:
+    #         continue
+    #     if selfish_vehicles[i].road.roadID != routes1[i][0][1]:
+    #         print(f"RoadID mismatch: {autoflow_vehicles[i].road.roadID}, {routes1[i][0][1]}")
 
     # 100% AutoFlow
     selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
@@ -408,6 +414,12 @@ if __name__ == "__main__":
         selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
     )
     routes2 = deepcopy(autoflow_vehicle_routes)
+
+    # for i in range(len(autoflow_vehicles)):
+    #     if len(routes2[i]) == 0:
+    #         continue
+    #     if autoflow_vehicles[i].road.roadID != routes2[i][0][1]:
+    #         print(f"RoadID mismatch: {autoflow_vehicles[i].road.roadID}, {routes2[i][0][1]}")
 
     # for vehicle in autoflow_vehicles:
     #     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
@@ -417,8 +429,8 @@ if __name__ == "__main__":
     #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
     #     )
 
-    print(len(autoflow_vehicle_routes))
-    print()
+    # print(len(autoflow_vehicle_routes))
+    # print()
 
     # for route in autoflow_vehicle_routes:
     #     print(route)
