@@ -260,13 +260,21 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
 
     NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
-    return list(sorted(
+
+    ans = list(sorted(
         autoflow_vehicles, 
         key = lambda vehicle: (
+            
             emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
             passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT
         )
     ))
+
+    print('Vehicles:')
+    for vehicle in ans:
+        print(vehicle.emissionRate, vehicle.passengerCount)
+
+    return ans
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
