@@ -245,7 +245,7 @@ class Road:
     One is subtracted due to the fact that the road starts and ends at the centre of two intersections.
     """
 
-    offset = 0.1 # offsets vehicles towards the middle line of a road tile, ranges from 0 to 0.25
+    offset = 0.1  # offsets vehicles towards the middle line of a road tile, ranges from 0 to 0.25
 
     def __init__(self, start: tuple[int, int], end: tuple[int, int]) -> None:
         self.roadID: int = (
@@ -272,39 +272,47 @@ class Road:
         # Adjust real starting & ending positions according to direction
         if self.direction == "N":
             self.startPosReal = (
-                self.startPosReal[0] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
-                self.startPosReal[1] + CELL_SIZE_METRES/2
+                self.startPosReal[0]
+                + (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
+                self.startPosReal[1] + CELL_SIZE_METRES / 2,
             )
             self.endPosReal = (
-                self.endPosReal[0] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
-                self.endPosReal[1] - CELL_SIZE_METRES/2
+                self.endPosReal[0]
+                + (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
+                self.endPosReal[1] - CELL_SIZE_METRES / 2,
             )
         elif self.direction == "S":
             self.startPosReal = (
-                self.startPosReal[0] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
-                self.startPosReal[1] - CELL_SIZE_METRES/2
+                self.startPosReal[0]
+                - (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
+                self.startPosReal[1] - CELL_SIZE_METRES / 2,
             )
             self.endPosReal = (
-                self.endPosReal[0] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset), 
-                self.endPosReal[1] + CELL_SIZE_METRES/2
+                self.endPosReal[0]
+                - (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
+                self.endPosReal[1] + CELL_SIZE_METRES / 2,
             )
         elif self.direction == "E":
             self.startPosReal = (
-                self.startPosReal[0] + CELL_SIZE_METRES/2, 
-                self.startPosReal[1] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
+                self.startPosReal[0] + CELL_SIZE_METRES / 2,
+                self.startPosReal[1]
+                - (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
             )
             self.endPosReal = (
-                self.endPosReal[0] - CELL_SIZE_METRES/2, 
-                self.endPosReal[1] - (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
+                self.endPosReal[0] - CELL_SIZE_METRES / 2,
+                self.endPosReal[1]
+                - (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
             )
         elif self.direction == "W":
             self.startPosReal = (
-                self.startPosReal[0] - CELL_SIZE_METRES/2, 
-                self.startPosReal[1] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
+                self.startPosReal[0] - CELL_SIZE_METRES / 2,
+                self.startPosReal[1]
+                + (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
             )
             self.endPosReal = (
-                self.endPosReal[0] + CELL_SIZE_METRES/2, 
-                self.endPosReal[1] + (CELL_SIZE_METRES/4 - CELL_SIZE_METRES * Road.offset)
+                self.endPosReal[0] + CELL_SIZE_METRES / 2,
+                self.endPosReal[1]
+                + (CELL_SIZE_METRES / 4 - CELL_SIZE_METRES * Road.offset),
             )
 
         # Set real length and speed limit
@@ -1013,6 +1021,10 @@ class Landscape:
         ] = []
         for inter in self.intersections.values():
             id = inter.coordinates()
+
+            if self.landscapeMatrix[id[1]][id[0]] != "IS":
+                raise ValueError("Found invalid intersection")
+
             enterRoadIDs: list[int] = []
             exitRoadIDs: list[int] = []
             for neighbor in inter.neighbours:

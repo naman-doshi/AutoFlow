@@ -14,6 +14,7 @@ PORT = 8001
 @dataclasses.dataclass
 class VehicleInitMessage:
     id: int
+    initRoadId: int
     position: tuple[float, float]
     rotation: float
     emissionRate: float
@@ -23,6 +24,7 @@ class VehicleInitMessage:
     def __dict__(self):
         return {
             "id": self.id,
+            "initRoadId": self.initRoadId,
             "position": self.position,
             "rotation": self.rotation,
             "emissionRate": self.emissionRate,
@@ -205,7 +207,7 @@ async def handler(websocket: WebSocketServerProtocol):
     print(USE_AUTOFLOW)
 
     inp: tuple[
-        dict[int, tuple[float, float, int]],
+        dict[int, tuple[float, float, Vehicle]],
         Landscape,
         dict[int, list[tuple[float, float, float]]],
         list[Vehicle],
@@ -213,15 +215,16 @@ async def handler(websocket: WebSocketServerProtocol):
 
     # Initial scene
     vehicleInits = []
-    for id, posAndPass in inp[0].items():
+    for id, posAndVeh in inp[0].items():
         vehicleInits.append(
             VehicleInitMessage(
                 id,
-                (posAndPass[0], posAndPass[1]),
+                posAndVeh[2].road.roadID,
+                (posAndVeh[0], posAndVeh[1]),
                 0,
                 inp[3][id].emissionRate,
                 USE_AUTOFLOW,
-                posAndPass[2],
+                posAndVeh[2].passengerCount,
             )
         )
 
