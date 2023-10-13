@@ -67,7 +67,7 @@ class ConventionalVehicle(Vehicle):
     """
 
     def __init__(
-        self, emissionRate: float = randint(100, Vehicle.MAX_EMISSION_RATE), passengerCount = randint(1, 6), useAutoFlow: bool = False
+        self, useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = randint(100, Vehicle.MAX_EMISSION_RATE)
         self.passengerCount = passengerCount = randint(1, 6)
@@ -81,7 +81,7 @@ class ElectricVehicle(Vehicle):
     """
 
     def __init__(
-            self, passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT), useAutoFlow: bool = False
+            self, useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = 0
         self.passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT)
