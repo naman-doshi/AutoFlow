@@ -44,16 +44,17 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 #================ INPUTS =================
-LANDSCAPE_SIZE = (10, 10)
+LANDSCAPE_SIZE = (5, 5)
 LANDSCAPE_FEATURES = [
-    (COMMERCIAL_BLOCK, 20),
-    (COMMERCIAL_BLOCK_LARGE, 10),
+    # (COMMERCIAL_BLOCK, 20),
+    # (COMMERCIAL_BLOCK_LARGE, 10),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
     # (LARGE_PARK_AREA, 1)
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None) # 1x1 land block fillers
+#LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None) # 1x1 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None) # 1x1 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 #=========================================
 
@@ -245,6 +246,30 @@ for vehicle in vehicles:
     vehicle.setDestination(road, position) # set vehicle's destination location
 
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
+
+
+for row in landscape.landscapeMatrix:
+    print(row)
+# Checking for existence of double intersections
+di_exists = False
+for y in range(1, landscape.ySize+1):
+    for x in range(1, landscape.xSize+1):
+        if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
+            di_exists = True
+            break
+        elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
+            di_exists = True
+            break
+    if di_exists:
+        break
+if di_exists:
+    print("Double intersection detected")
 
 
 # ===============================================================================================
