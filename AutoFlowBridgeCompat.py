@@ -129,25 +129,25 @@ for road in landscape.roads:
         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
             available_destination_coordinates.append((road, pos))
 
-# Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
-available_starting_coordinates: list[tuple[Road, float]] = []
-for road in landscape.roads:
-    for pos in getPositions(road):
-        realpos = getRealPositionOnRoad(road, pos)
-        if (
-            realpos[0] <= CELL_SIZE_METRES * landscape.xSize // 2
-        ) and (realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
-            available_starting_coordinates.append((road, pos))
+# # Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
+# available_starting_coordinates: list[tuple[Road, float]] = []
+# for road in landscape.roads:
+#     for pos in getPositions(road):
+#         realpos = getRealPositionOnRoad(road, pos)
+#         if (
+#             realpos[0] <= CELL_SIZE_METRES * landscape.xSize // 2
+#         ) and (realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
+#             available_starting_coordinates.append((road, pos))
 
-# Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
-available_destination_coordinates: list[tuple[Road, float]] = []
-for road in landscape.roads:
-    for pos in getPositions(road):
-        realpos = getRealPositionOnRoad(road, pos)
-        if (
-            CELL_SIZE_METRES * landscape.xSize // 2 <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+2)
-        ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
-            available_destination_coordinates.append((road, pos))
+# # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
+# available_destination_coordinates: list[tuple[Road, float]] = []
+# for road in landscape.roads:
+#     for pos in getPositions(road):
+#         realpos = getRealPositionOnRoad(road, pos)
+#         if (
+#             CELL_SIZE_METRES * landscape.xSize // 2 <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+2)
+#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
+#             available_destination_coordinates.append((road, pos))
 
 # Generate a valid vehicle count
 MAX_VEHICLE_COUNT = min(len(available_starting_coordinates), len(available_destination_coordinates))
