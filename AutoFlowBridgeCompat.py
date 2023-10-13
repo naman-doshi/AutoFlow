@@ -240,6 +240,26 @@ for vehicle in vehicles:
 
     available_coordinates[poolID].pop(coordIndex) # remove assigned coord from pool
 
+# # Checking for existence of double intersections
+# di_exists = False
+# for y in range(1, landscape.ySize+1):
+#     for x in range(1, landscape.xSize+1):
+#         if landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y+1][x] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y-1][x] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x+1] == "IS":
+#             di_exists = True
+#             break
+#         elif landscape.landscapeMatrix[y][x] == landscape.landscapeMatrix[y][x-1] == "IS":
+#             di_exists = True
+#             break
+#     if di_exists:
+#         break
+# if di_exists:
+#     print("Double intersection detected")
 
 # ===============================================================================================
 # AutoFlow Distribution Functions
