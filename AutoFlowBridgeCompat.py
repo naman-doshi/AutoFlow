@@ -98,8 +98,8 @@ AVERAGE_ROAD_SPEED_MPS = AVERAGE_ROAD_SPEED * 1000 / 3600
 
 def getPositions(road: Road): # returns all the available positions on a road for vehicle spawning
     positions = []
-    pos = 0
-    increment = 1 / (road.cellSpan * 4)
+    pos = 1 / (road.cellSpan * 4)
+    increment = pos
     while pos < 1:
         positions.append(pos)
         pos += increment
