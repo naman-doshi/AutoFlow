@@ -270,9 +270,9 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
         )
     ))
 
-    print('Vehicles:')
-    for vehicle in ans:
-        print(vehicle.emissionRate, vehicle.passengerCount)
+    # print('Vehicles:')
+    # for vehicle in ans:
+    #     print(vehicle.emissionRate, vehicle.passengerCount)
 
     return ans
 
