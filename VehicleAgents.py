@@ -70,7 +70,7 @@ class ConventionalVehicle(Vehicle):
         self, useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = randint(100, Vehicle.MAX_EMISSION_RATE)
-        self.passengerCount = passengerCount = randint(1, 6)
+        self.passengerCount = randint(1, 6)
         self.setRoutingSystem(int(useAutoFlow))
 
 
