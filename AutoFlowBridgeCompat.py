@@ -399,12 +399,12 @@ def outputToBridge(
 
         initPos: dict[int, tuple[float, float, int]] = {}
         for i, vehicle in enumerate(selfish_vehicles):
-            if len(routes2[i]) == 0:
+            if len(routes1[i]) == 0:
                 initPos[i] = getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition) + (
                     vehicle.passengerCount,
                 )
             else:
-                initPos[i] = routes2[i][0][0] + (
+                initPos[i] = routes1[i][0][0] + (
                     vehicle.passengerCount,
                 )
         routes: dict[int, list[tuple[float, float, float]]] = {}
