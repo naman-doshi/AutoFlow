@@ -144,8 +144,7 @@ for road in landscape.roads:
 MAX_VEHICLE_COUNT = len(available_coordinates)
 print(MAX_VEHICLE_COUNT)
 print()
-#VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT)
-VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 7 / 10), int(MAX_VEHICLE_COUNT * 8 / 10))
+VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT)
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
 assert VEHICLE_COUNT <= len(available_coordinates)
