@@ -102,7 +102,10 @@ def getPositions(
 ):  # returns all the available positions on a road for vehicle spawning
     positions = []
     pos = 0
-    increment = 1 / (road.cellSpan * 4)
+    if road.cellSpan == 0:
+        increment = 1
+    else:
+        increment = 1 / (road.cellSpan * 4)
     while pos < 1:
         positions.append(pos)
         pos += increment
