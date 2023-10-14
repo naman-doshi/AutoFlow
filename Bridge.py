@@ -251,7 +251,7 @@ async def handler(websocket: WebSocketServerProtocol):
     await websocket.send(
         InitMessage(
             flatLandscapeMatrix,
-            len(inp[1].landscapeMatrix),
+            len(inp[1].landscapeMatrix[0]),
             vehicleInits,
             roadMessages,
             intersections,
