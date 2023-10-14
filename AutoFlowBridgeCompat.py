@@ -38,15 +38,15 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 # ================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    # (COMMERCIAL_BLOCK, 20),
-    (COMMERCIAL_BLOCK_LARGE, 5),
+    (COMMERCIAL_BLOCK, 15),
+    (COMMERCIAL_BLOCK_LARGE, 3),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
-    # (LARGE_PARK_AREA, 5)
+    # (LARGE_PARK_AREA, 1)
 ]
-# LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
-LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)  # 2x2 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
+#LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)  # 2x2 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 # =========================================
 
@@ -139,8 +139,8 @@ for road in landscape.roads:
 #     for pos in getPositions(road):
 #         realpos = getRealPositionOnRoad(road, pos)
 #         if (
-#             realpos[0] <= CELL_SIZE_METRES * landscape.xSize // 2
-#         ) and (realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
+#             CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * landscape.xSize // 2
+#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
 #             available_starting_coordinates.append((road, pos))
 
 # # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
@@ -149,8 +149,27 @@ for road in landscape.roads:
 #     for pos in getPositions(road):
 #         realpos = getRealPositionOnRoad(road, pos)
 #         if (
-#             CELL_SIZE_METRES * landscape.xSize // 2 <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+2)
-#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+2)):
+#             CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)
+#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
+#             available_destination_coordinates.append((road, pos))
+
+# available_starting_coordinates: list[tuple[Road, float]] = []
+# for road in landscape.roads:
+#     for pos in getPositions(road):
+#         realpos = getRealPositionOnRoad(road, pos)
+#         if (
+#             CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)
+#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
+#             available_starting_coordinates.append((road, pos))
+
+# # Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
+# available_destination_coordinates: list[tuple[Road, float]] = []
+# for road in landscape.roads:
+#     for pos in getPositions(road):
+#         realpos = getRealPositionOnRoad(road, pos)
+#         if (
+#             CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)
+#         ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
 #             available_destination_coordinates.append((road, pos))
 
 # Generate a valid vehicle count
@@ -161,7 +180,8 @@ print()
 print(MAX_VEHICLE_COUNT)
 print()
 #VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT)
-VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 7 / 10), int(MAX_VEHICLE_COUNT * 8 / 10)) # auto-generated
+#VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 6 / 10), int(MAX_VEHICLE_COUNT * 7 / 10)) # auto-generated
+VEHICLE_COUNT = int(MAX_VEHICLE_COUNT * 6 / 10)
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
 assert VEHICLE_COUNT <= MAX_VEHICLE_COUNT

@@ -140,8 +140,8 @@ class Intersection:
                     self.neighbours[self.trafficLightPattern[i]]
                 ] = i
 
-            # Randomise phase duration between 2-5 seconds
-            self.trafficLightDuration = randint(2, 5)
+            # Randomise phase duration between 3-8 seconds
+            self.trafficLightDuration = randint(3, 8)
 
             # Calculate traffic passthrough rate for every road
             for intersection in self.neighbours:
