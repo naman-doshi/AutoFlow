@@ -43,7 +43,7 @@ LANDSCAPE_FEATURES = [
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
-    # (LARGE_PARK_AREA, 1)
+    # (LARGE_PARK_AREA, 5)
 ]
 # LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
 LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)  # 2x2 land block fillers
@@ -160,7 +160,8 @@ print(len(available_destination_coordinates))
 print()
 print(MAX_VEHICLE_COUNT)
 print()
-VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT) # auto-generated
+#VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT) # auto-generated
+VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 7 / 10), int(MAX_VEHICLE_COUNT * 8 / 10)) # auto-generated
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
 assert VEHICLE_COUNT <= MAX_VEHICLE_COUNT
