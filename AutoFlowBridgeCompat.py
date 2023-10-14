@@ -38,14 +38,15 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 # ================ INPUTS =================
 LANDSCAPE_SIZE = (10, 10)
 LANDSCAPE_FEATURES = [
-    (COMMERCIAL_BLOCK, 20),
-    (COMMERCIAL_BLOCK_LARGE, 10),
+    # (COMMERCIAL_BLOCK, 20),
+    (COMMERCIAL_BLOCK_LARGE, 5),
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
     # (LARGE_PARK_AREA, 1)
 ]
-LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
+# LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), None)  # 1x1 land block fillers
+LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (2, 2), None)  # 2x2 land block fillers
 # VEHICLE_COUNT = 20 # size constraint in place, may not always fit
 # =========================================
 
