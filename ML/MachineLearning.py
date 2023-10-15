@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
 
 # Load the training data
-data = pd.read_csv('train.csv')
+data = pd.read_csv('ML/train.csv')
 
 # Preprocessing
 # Assuming the last column is the target variable
@@ -51,5 +51,14 @@ X_val_sorted = X_val[sorted_indices]
 mse = mean_squared_error(y_val, y_pred)
 r2 = r2_score(y_val, y_pred)
 
-print(f'Mean Squared Error: {mse}')
-print(f'R^2 Score: {r2}')
+def predict(X):
+    # Standardize the features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+
+    # Predict on the validation set
+    y_pred = best_gbrt.predict(X)
+    sorted_indices = np.argsort(y_pred)
+    X_sorted = X[sorted_indices]
+    return X_sorted
+
