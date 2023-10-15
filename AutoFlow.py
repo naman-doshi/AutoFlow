@@ -250,56 +250,39 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
     NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
 
-    try:
-        best_ordering = MachineLearning.best_gbrt.predict([
-            [
-                autoflow_vehicles[i].emissionRate, 
-                autoflow_vehicles[i].passengerCount, 
-                euclideanDistance(
-                    getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
-                    getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
-                )
-            ] for i in range(len(autoflow_vehicles))
-        ])
-        return best_ordering
-    
-    except Exception:        
-        autoflow_vehicles.sort(
-            key = lambda vehicle: (
-                vehicle.position * vehicle.road.maxVehicleCount,
-                euclideanDistance(
-                    getRealPositionOnRoad(vehicle.road, vehicle.position),
-                    getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-                ),
-                vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
-                vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
+    best_ordering = MachineLearning.predict([
+        [
+            autoflow_vehicles[i].emissionRate, 
+            autoflow_vehicles[i].passengerCount, 
+            euclideanDistance(
+                getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
+                getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
             )
+        ] for i in range(len(autoflow_vehicles))
+    ])
+        
+    autoflow_vehicles.sort(
+        key = lambda vehicle: (
+            vehicle.position * vehicle.road.maxVehicleCount,
+            euclideanDistance(
+                getRealPositionOnRoad(vehicle.road, vehicle.position),
+                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+            ),
+            vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
+            vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
         )
-        return sorted(
-            autoflow_vehicles,
-            key = lambda vehicle: (            
-                emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
-                passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
-                distanceHeuristicWeighting * euclideanDistance(
-                    getRealPositionOnRoad(vehicle.road, vehicle.position),
-                    getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-                ) / (CELL_SIZE_METRES * 20 * 20)
-            )
+    )
+    return sorted(
+        autoflow_vehicles,
+        key = lambda vehicle: (            
+            emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
+            passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
+            distanceHeuristicWeighting * euclideanDistance(
+                getRealPositionOnRoad(vehicle.road, vehicle.position),
+                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+            ) / (CELL_SIZE_METRES * 20 * 20)
         )
-
-    # ans = list(sorted(
-    #     autoflow_vehicles, 
-    #     key = lambda vehicle: (
-    #         emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
-    #         passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT
-    #     )
-    # ))
-
-    # print('Vehicles:')
-    # for vehicle in ans:
-    #     print(vehicle.emissionRate, vehicle.passengerCount)
-
-    # return ans
+    )
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
