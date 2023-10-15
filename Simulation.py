@@ -8,6 +8,14 @@ The population is then cloned and distributed with AutoFlow at a specified perce
 The modified population groups are tested within the same landscape for statistical analysis.
 
 All routing data are produced and sent to the Unity frontend via AutoFlow Bridge.
+
+The following input variables are used to describe the virtual simualtion:
+- LANDSCAPE_SIZE: a tuple describing the approximate dimensions of the landscape, see LandscapeComponents.py
+- VEHICLE_COUNT: the exact number of vehicle agents to be spawned into the simulation
+- AUTOFLOW_PERCENTAGE: the percentage of vehicle agents using AutoFlow
+
+The distribution of EVs is based on https://www.iea.org/reports/global-ev-outlook-2023/executive-summary.
+Vehicle density is based on http://www.demographia.com/db-trafficintense.pdf.
 """
 
 #================ IMPORTS ================

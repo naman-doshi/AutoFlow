@@ -1,18 +1,7 @@
 """
 This script contains the multiple route computing algorithms, including:
-- selfish A* pathfinding algorithm
-- multi-agent pathfinding algorithm of the AutoFlow system
-
-The distribution of EVs is based on https://www.iea.org/reports/global-ev-outlook-2023/executive-summary.
-The number of vehicle agents to spawn in must be smaller than the (number of available coordinates * 2),
-this is because currently vehicles are placed into random cell coordinates (which must be unique).
-
-The following input variables are used to describe the virtual simualtion:
-- LANDSCAPE_SIZE: a tuple describing the approximate dimensions of the landscape, see LandscapeComponents.py
-- VEHICLE_COUNT: the exact number of vehicle agents to be spawned into the simulation
-- AUTOFLOW_PERCENTAGE: the percentage of vehicle agents using AutoFlow
-
-TODO: Refactor vehicle agents into a separate simulation script for different result comparisons
+- selfish A* routing algorithm
+- AutoFlow collaborative routing algorithm
 """
 
 
@@ -23,6 +12,7 @@ from VehicleAgents import *
 from random import sample
 from heapq import *
 from math import ceil
+from ML import *
 #=========================================
 
 
@@ -66,7 +56,6 @@ def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehic
 def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
     Selfish vehicles perform basic A* without awareness of other vehicles.
-    Path allocation is computed in no particular order.
 
     Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
     - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
@@ -253,7 +242,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     #     print(routes)
     return routes
 
-def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float, passengerCountWeighting: float):
+def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float, passengerCountWeighting: float, distanceHeuristicWeighting: float):
     """
     Sorts vehicles in-place baseed on a trainable priority function.
     Priorities are calculated based on the NORMALISED emission rate and passenger count of each vehicle.
@@ -262,9 +251,26 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
     """
 
     autoflow_vehicles.sort(
+        key = lambda vehicle: (
+            vehicle.position * vehicle.road.maxVehicleCount,
+            euclideanDistance(
+                getRealPositionOnRoad(vehicle.road, vehicle.position),
+                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+            ),
+            vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
+            vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
+        )
+    )
+
+    return sorted(
+        autoflow_vehicles,
         key = lambda vehicle: (            
             emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
-            passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT
+            passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
+            distanceHeuristicWeighting * euclideanDistance(
+                getRealPositionOnRoad(vehicle.road, vehicle.position),
+                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+            ) / (CELL_SIZE_METRES * 20 * 20)
         )
     )
 
@@ -285,7 +291,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
     AutoFlow vehicles perform cooperative A* with awareness of other AutoFlow vehicles.
-    Path allocation is computed in ascending order of emission rate.
+    Vehicle priorities are determined by pre-trained gradient boosted regression trees.
 
     A space-time reservation table is used to keeps track of the number of vehicles on each road
     at any timestamp (in seconds). This greatly enhances the accuracy of cost functions when
@@ -304,18 +310,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     routes: list[list[tuple[float, float]]] = []
 
     # Sort the list of vehicles
-    #sortVehicles(autoflow_vehicles, -1, -2)
-    autoflow_vehicles.sort(
-        key = lambda vehicle: (
-            vehicle.position * vehicle.road.maxVehicleCount,
-            euclideanDistance(
-                getRealPositionOnRoad(vehicle.road, vehicle.position),
-                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-            ),
-            vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
-            vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
-        )
-    )
+    sortVehicles(autoflow_vehicles, -1, -2, 1)
 
     #delayFactor = len(landscape.roads) // max(landscape.xSize, landscape.ySize)
     delayFactor = 1.5 # exponential time

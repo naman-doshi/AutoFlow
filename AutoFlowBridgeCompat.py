@@ -1,15 +1,3 @@
-"""
-This script executes the backend simulation.
-
-A virtual landscape is firstly generated, and a population of vehicle agents with random
-starting positions and destinations are spawned.
-
-The population is then cloned and distributed with AutoFlow at a specified percentage.
-The modified population groups are tested within the same landscape for statistical analysis.
-
-All routing data are produced and sent to the Unity frontend via AutoFlow Bridge.
-"""
-
 # ================ IMPORTS ================
 from AutoFlow import *
 

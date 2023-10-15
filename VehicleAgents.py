@@ -3,10 +3,8 @@ This script contains all of the vehicle agent object definitions required for th
 
 Vehicles are either conventional (run on fossil fuel) or electric (EVs) and contain the following fields:
 - emissionRate: carbon emission in g/km, visit https://www.ntc.gov.au/light-vehicle-emissions-intensity-australia
+- passengerCount: the number of passengers carried by the vehicle
 - routingSystem: the routing system used by the vehicle
-
-For future development, vehicle classes can be further divided to include extra properties,
-e.g. different car model sizes, number of passengers, etc.
 """
 
 
