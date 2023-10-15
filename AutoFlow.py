@@ -319,7 +319,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     #delayFactor = len(landscape.roads) // max(landscape.xSize, landscape.ySize)
     delayFactor = 1.5 # exponential time
-    congestionCost = 2
+    congestionCost = 1
     print("DF:", delayFactor, "CC:", congestionCost)
 
     # Set up space-time reservation table 
@@ -537,6 +537,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     # Reset routes for path improvement
     routes: list[list[tuple[float, float]]] = []
+    congestionCost = 0 # new paths should not contribute to congestion
 
     for vehicle in autoflow_vehicles:
 
