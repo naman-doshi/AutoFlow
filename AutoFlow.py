@@ -12,9 +12,8 @@ from VehicleAgents import *
 from random import sample
 from heapq import *
 from math import ceil
-from ML import *
+from ML import MachineLearning
 #=========================================
-
 
 # ===============================================================================================
 # Helper Functions
@@ -55,7 +54,8 @@ def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehic
 
 def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
-    Selfish vehicles perform basic A* without awareness of other vehicles.
+    Selfish routing algorithm of Google Maps.
+    Vehicles are not knowledgeable of future traffic and therefore only aware of congestion AFTER they occur.
 
     Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
     - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
@@ -250,29 +250,42 @@ def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float,
     NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
 
-    autoflow_vehicles.sort(
-        key = lambda vehicle: (
-            vehicle.position * vehicle.road.maxVehicleCount,
-            euclideanDistance(
-                getRealPositionOnRoad(vehicle.road, vehicle.position),
-                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-            ),
-            vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
-            vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
+    try:
+        best_ordering = MachineLearning.best_gbrt.predict([
+            [
+                autoflow_vehicles[i].emissionRate, 
+                autoflow_vehicles[i].passengerCount, 
+                euclideanDistance(
+                    getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
+                    getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
+                )
+            ] for i in range(len(autoflow_vehicles))
+        ])
+        return best_ordering
+    
+    except Exception:        
+        autoflow_vehicles.sort(
+            key = lambda vehicle: (
+                vehicle.position * vehicle.road.maxVehicleCount,
+                euclideanDistance(
+                    getRealPositionOnRoad(vehicle.road, vehicle.position),
+                    getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+                ),
+                vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
+                vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
+            )
         )
-    )
-
-    return sorted(
-        autoflow_vehicles,
-        key = lambda vehicle: (            
-            emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
-            passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
-            distanceHeuristicWeighting * euclideanDistance(
-                getRealPositionOnRoad(vehicle.road, vehicle.position),
-                getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-            ) / (CELL_SIZE_METRES * 20 * 20)
+        return sorted(
+            autoflow_vehicles,
+            key = lambda vehicle: (            
+                emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
+                passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
+                distanceHeuristicWeighting * euclideanDistance(
+                    getRealPositionOnRoad(vehicle.road, vehicle.position),
+                    getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+                ) / (CELL_SIZE_METRES * 20 * 20)
+            )
         )
-    )
 
     # ans = list(sorted(
     #     autoflow_vehicles, 
