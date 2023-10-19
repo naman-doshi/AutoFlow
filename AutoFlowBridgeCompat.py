@@ -24,15 +24,15 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (20, 20)
+LANDSCAPE_SIZE = (15, 15)
 LANDSCAPE_FEATURES = [
     #(COMMERCIAL_BLOCK, 15),
-    (COMMERCIAL_BLOCK_LARGE, 20),
+    (COMMERCIAL_BLOCK_LARGE, 1),
     #(LandPlotDescriptor((2, 2), (1, 1)), 20)
     # (HORIZONTAL_RESIDENTIAL_ROW, 3),
     # (VERTICAL_RESIDENTIAL_ROW, 4),
     # (SCHOOL_ZONE, 2),
-    (LARGE_PARK_AREA, 3)
+    (LARGE_PARK_AREA, 1)
 ]
 #LANDSCAPE_FILLER = LandPlotDescriptor((1, 1), (1, 1), False)  # 1x1 land block fillers
 #LANDSCAPE_FILLER = LandPlotDescriptor((2, 2), (1, 1))  # 2x1 randomly oriented land block fillers

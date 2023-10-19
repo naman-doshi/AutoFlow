@@ -12,7 +12,7 @@ from VehicleAgents import *
 from random import sample
 from heapq import *
 from math import ceil
-from ML import MachineLearning
+from ML import pred
 #=========================================
 
 # ===============================================================================================
@@ -242,38 +242,63 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     #     print(routes)
     return routes
 
-def sortVehicles(autoflow_vehicles: list[Vehicle], emissionRateWeighting: float, passengerCountWeighting: float, distanceHeuristicWeighting: float):
+def MLSortVehicles(autoflow_vehicles):
+    listVer = [
+        [i.passengerCount, i.emissionRate, euclideanDistance(
+                 getRealPositionOnRoad(i.road, i.position),
+                 getRealPositionOnRoad(i.destinationRoad, i.destinationPosition)
+             )]
+          for i in autoflow_vehicles]
+    
+    indices = pred.predict(listVer)
+
+    result = [0] * len(indices)
+
+    for i in range(len(indices)):
+        result[indices[i]] = autoflow_vehicles[i]
+    
+    return result
+
+def sortVehicles(autoflow_vehicles: list[Vehicle]):
     """
     Sorts vehicles in-place baseed on a trainable priority function.
-    Priorities are calculated based on the NORMALISED emission rate and passenger count of each vehicle.
-
-    NOTE: Weightings can be negative, and should be negative for passengerCountWeighting (higher => more important)
     """
         
+    # result = MachineLearning.predict([
+    #     [
+    #         autoflow_vehicles[i].passengerCount, 
+    #         autoflow_vehicles[i].emissionRate, 
+    #         euclideanDistance(
+    #             getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
+    #             getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
+    #         )
+    #     ] for i in range(len(autoflow_vehicles))
+    # ])
+        
+    # result = sorted(
+    #     autoflow_vehicles,
+    #     key = lambda vehicle: (            
+    #         emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
+    #         passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
+    #         distanceHeuristicWeighting * euclideanDistance(
+    #             getRealPositionOnRoad(vehicle.road, vehicle.position),
+    #             getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+    #         ) / (CELL_SIZE_METRES * 20 * 20)
+    #     )
+    # )
+
     autoflow_vehicles.sort(
-        key = lambda vehicle: (
-            vehicle.position * vehicle.road.maxVehicleCount,
+        key = lambda vehicle: (      
             euclideanDistance(
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-            ),
-            vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE +
-            vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT * 2
-        )
+            ) * vehicle.passengerCount,
+            vehicle.emissionRate
+        ),
+        reverse=True
     )
 
-    best_ordering = MachineLearning.predict([
-        [
-            autoflow_vehicles[i].emissionRate, 
-            autoflow_vehicles[i].passengerCount, 
-            euclideanDistance(
-                getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
-                getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
-            )
-        ] for i in range(len(autoflow_vehicles))
-    ])
-    
-    return best_ordering
+    return MLSortVehicles(autoflow_vehicles)
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
@@ -297,7 +322,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     routes: list[list[tuple[float, float]]] = []
 
     # Sort the list of vehicles
-    sortVehicles(autoflow_vehicles, -1, -2, 1)
+    sortVehicles(autoflow_vehicles)
 
     #delayFactor = len(landscape.roads) // max(landscape.xSize, landscape.ySize)
     delayFactor = 1.5 # exponential time

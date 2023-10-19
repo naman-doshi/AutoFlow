@@ -5,6 +5,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
+import pickle
 
 # Load the training data
 data = pd.read_csv('ML/train.csv')
@@ -13,6 +14,7 @@ data = pd.read_csv('ML/train.csv')
 # Assuming the last column is the target variable
 y = data.iloc[:, -1]
 X = data.iloc[:, :-1]
+
 
 # Standardize the features
 scaler = StandardScaler()
@@ -40,25 +42,21 @@ grid_search.fit(X_train, y_train)
 # Get the best model
 best_gbrt = grid_search.best_estimator_
 
+pickle.dump(best_gbrt, open('ML/model.pickle', "wb"))
+
 # Predict on the validation set
 y_pred = best_gbrt.predict(X_val)
 
+#print(y_pred)
+
 # Sort the validation set based on the predictions
 sorted_indices = np.argsort(y_pred)
+
 X_val_sorted = X_val[sorted_indices]
 
 # Evaluate the model
 mse = mean_squared_error(y_val, y_pred)
 r2 = r2_score(y_val, y_pred)
 
-def predict(X):
-    # Standardize the features
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    # Predict on the validation set
-    y_pred = best_gbrt.predict(X)
-    sorted_indices = np.argsort(y_pred)
-    X_sorted = X[sorted_indices]
-    return X_sorted
-
+print(mse)
+print(r2)
