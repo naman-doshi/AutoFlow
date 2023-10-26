@@ -293,7 +293,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
             ) * vehicle.passengerCount,
-            vehicle.emissionRate
+            vehicle.emissionRate * -1;
         ),
         reverse=True
     )
