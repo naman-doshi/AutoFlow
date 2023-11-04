@@ -7,6 +7,7 @@ import json
 from AutoFlowBridgeCompat import outputToBridge
 from LandscapeComponents import Landscape
 from VehicleAgents import Vehicle
+import websockets
 
 PORT = 8001
 
@@ -268,6 +269,27 @@ async def handler(websocket: WebSocketServerProtocol):
     await websocket.send(UpdateMessage(updateMessages).serialize())
 
     print("Finished routing")
+
+    while True:
+        try:
+            message = await websocket.recv()
+            # horrible security
+            carPositions = eval(message)
+            print(carPositions[0]["Routes"])
+            
+            # recalculate routes (placeholder)
+
+            # send back
+            newRoutes = "Response from Python received."
+
+            await websocket.send(newRoutes)
+            
+        except websockets.exceptions.ConnectionClosedOK:
+            print("Connection closed, stopping reception.")
+            break
+
+        await asyncio.sleep(5)
+
 
 
 async def main():
