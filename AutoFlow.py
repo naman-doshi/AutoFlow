@@ -543,8 +543,3 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     #     print(route)
     
     return routes
-
-def recalculateRoutes(vehicleMetadata):
-    # Double check that each car is within the bounds of its road
-    for vehicle in vehicleMetadata:
-        x, y = vehicle

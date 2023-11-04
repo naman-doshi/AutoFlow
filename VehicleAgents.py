@@ -45,6 +45,9 @@ class Vehicle(ABC):
     def setDestination(self, road: Road, position: float):
         self.destinationRoad = road
         self.destinationPosition = position
+        realPositionX = (road.endPosReal[0] - road.startPosReal[0]) * position + road.startPosReal[0]
+        realPositionY = (road.endPosReal[1] - road.startPosReal[1]) * position + road.startPosReal[1]
+        self.destinationRealPosition = (realPositionX, realPositionY)
 
     def __deepcopy__(self, memo):
         agentCopy: Vehicle = self.__class__()

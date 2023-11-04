@@ -240,6 +240,8 @@ for (
 print(len(vehicles))
 print()
 
+vehicleLookup = {}
+
 # Assign random destination coordinates to all vehicles
 for vehicle in vehicles:
     coordIndex = randint(

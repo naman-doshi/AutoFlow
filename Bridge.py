@@ -8,6 +8,8 @@ from AutoFlowBridgeCompat import outputToBridge
 from LandscapeComponents import Landscape
 from VehicleAgents import Vehicle
 import websockets
+import AutoFlowBridgeCompat
+import LandscapeComponents
 
 PORT = 8001
 
@@ -275,7 +277,40 @@ async def handler(websocket: WebSocketServerProtocol):
             message = await websocket.recv()
             # horrible security
             carPositions = eval(message)
-            print(carPositions[0]["Routes"])
+            newRoutes = {}
+
+            for car, data in carPositions.items():
+                x, y, roadID = data['Metadata']
+
+                if roadID == -1 or car == -1:
+                    continue
+
+                landscape = inp[1]
+                road = landscape.lookupRoad[roadID]
+
+                isWithinRoad = road.is_within_bounds(x, y)
+                currentRoutes = data['Routes']
+
+                if (not isWithinRoad):
+                    # Assume it's already on the second road
+                    currentRoutes.pop(0)
+                
+                # We can start navigating from the very start of the next road, since the car is already on the current road
+                vehicle = inp[0][car][2]
+                dest = vehicle.destinationRoad
+
+                for id, data in inp[0].items():
+                    if (data[0], data[1]) == currentRoutes[-1] or data[2].destinationRealPosition == currentRoutes[-1]:
+                        print("match found")
+                        
+
+                # three different destinations???
+                print(vehicle.destinationRealPosition)
+                print(inp[0][car][0], inp[0][car][1])
+                print(currentRoutes[-1])
+                    
+                
+
             
             # recalculate routes (placeholder)
 

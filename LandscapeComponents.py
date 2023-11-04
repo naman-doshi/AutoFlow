@@ -377,6 +377,14 @@ class Road:
     ) -> None:  # calculates the maximum number of cars that can physically fit
         self.maxVehicleCount = max(1, self.length // VEHICLE_LENGTH_METRES)
 
+    def is_within_bounds(self, x, y) -> bool:
+        if self.startPosReal[0] == self.endPosReal[0]:
+            # road is going north or south
+            return y <= max(self.startPosReal[1], self.endPosReal[1]) or y >= min(self.startPosReal[1], self.endPosReal[1])
+        if self.startPosReal[1] == self.endPosReal[1]:
+            # road is going east or west
+            return x <= max(self.startPosReal[0], self.endPosReal[0]) or x >= min(self.startPosReal[0], self.endPosReal[0])
+
 
 class LandPlotDescriptor:
 
@@ -405,6 +413,7 @@ class LandPlotDescriptor:
         self.randomOrientation = randomOrientation
 
 
+
 class Landscape:
 
     """
@@ -425,6 +434,7 @@ class Landscape:
         self.xSize = xSize
         self.ySize = ySize
         cellSize = cellSize
+        self.lookupRoad : dict[int, Road] = {}
 
         # Initiate component references
         self.reset_landscape()
@@ -468,6 +478,9 @@ class Landscape:
 
     #     # For now, return the Euclidean distance as the cost
     #     return distance
+
+    
+
 
     def reset_landscape(self) -> None:
         # 2D matrix representing the COMPACT land plot allocations i.e. no roads, x and y are cell coordinates
@@ -735,6 +748,7 @@ class Landscape:
         index = 0
         for road in self.roads:
             road.roadID = index
+            self.lookupRoad[index] = road
             index += 1
 
     def generate_landscape_matrix(self) -> None:
