@@ -10,6 +10,9 @@ from VehicleAgents import Vehicle
 import websockets
 import AutoFlowBridgeCompat
 import LandscapeComponents
+from LandscapeComponents import Road
+from AutoFlow import computeAutoflowVehicleRoutes
+from AutoFlowBridgeCompat import AVERAGE_ROAD_SPEED_MPS
 
 PORT = 8001
 
@@ -271,13 +274,26 @@ async def handler(websocket: WebSocketServerProtocol):
     await websocket.send(UpdateMessage(updateMessages).serialize())
 
     print("Finished routing")
-
+    
+    roadLookup : dict[tuple[int, int], Road] = {}
+    for road in inp[1].roads:
+        roadLookup[(int(road.startPosReal[0]), int(road.startPosReal[1]))] = road
+        roadLookup[(int(road.endPosReal[0]), int(road.endPosReal[1]))] = road
+        
+    # print(roadLookup)
     while True:
         try:
             message = await websocket.recv()
             # horrible security
             carPositions = eval(message)
             newRoutes = {}
+
+            if not USE_AUTOFLOW:
+                newRoutes = inp[2]
+                await websocket.send(str(newRoutes))
+            
+            autoflow_vehicles = []
+            finalRoutes = {}
 
             for car, data in carPositions.items():
                 x, y, roadID = data['Metadata']
@@ -291,33 +307,58 @@ async def handler(websocket: WebSocketServerProtocol):
                 isWithinRoad = road.is_within_bounds(x, y)
                 currentRoutes = data['Routes']
 
+                if len(currentRoutes) == 0:
+                    continue
+
                 if (not isWithinRoad):
                     # Assume it's already on the second road
                     currentRoutes.pop(0)
+                    
                 
                 # We can start navigating from the very start of the next road, since the car is already on the current road
                 vehicle = inp[0][car][2]
-                dest = vehicle.destinationRoad
-
-                for id, data in inp[0].items():
-                    if (data[0], data[1]) == currentRoutes[-1] or data[2].destinationRealPosition == currentRoutes[-1]:
-                        print("match found")
-                        
-
-                # three different destinations???
-                print(vehicle.destinationRealPosition)
-                print(inp[0][car][0], inp[0][car][1])
-                print(currentRoutes[-1])
-                    
+                finalDestination = currentRoutes[-1]
                 
+                # sets position to start of next road
+                # this might need to be changed to the exact current position for added accuracy.
+
+                if (len(currentRoutes) <= 1):
+                    vehicle.setLocation(road, 0)
+                    autoflow_vehicles.append(vehicle)
+                    continue
+                
+                try:
+                    vehicle.setLocation(roadLookup[currentRoutes[1]], 0)
+                except:
+                    vehicle.setLocation(roadLookup[currentRoutes[0]], 0)
+
+                autoflow_vehicles.append(vehicle)
+            
+            newRoutes = computeAutoflowVehicleRoutes(autoflow_vehicles, inp[1], AVERAGE_ROAD_SPEED_MPS)
 
             
-            # recalculate routes (placeholder)
+            i = 0
 
-            # send back
-            newRoutes = "Response from Python received."
+            for id, data in carPositions.items():
+                x, y, roadID = data['Metadata']
+                if roadID == -1 or car == -1 or len(data["Routes"]) <= 1:
+                    continue
+                finalRoutes[id] = [(data["Routes"][0], roadLookup[data["Routes"][0]].roadID)] + newRoutes[i]
+                i += 1
 
-            await websocket.send(newRoutes)
+            print(finalRoutes)
+
+            finalRoutes = json.dumps(finalRoutes)
+
+            
+
+                # # three different destinations???
+                # print(vehicle.destinationRealPosition)
+                # print(inp[2][car][-1][0], inp[2][car][-1][1])
+                # print(currentRoutes[-1])
+
+
+            await websocket.send(finalRoutes)
             
         except websockets.exceptions.ConnectionClosedOK:
             print("Connection closed, stopping reception.")

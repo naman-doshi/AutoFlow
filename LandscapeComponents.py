@@ -384,6 +384,12 @@ class Road:
         if self.startPosReal[1] == self.endPosReal[1]:
             # road is going east or west
             return x <= max(self.startPosReal[0], self.endPosReal[0]) or x >= min(self.startPosReal[0], self.endPosReal[0])
+        
+    def get_position(self, x, y) -> float:
+        """
+        Returns the normalised position of a given coordinate on this road.
+        """
+        return round((x - self.startPosReal[0]) / (self.endPosReal[0] - self.startPosReal[0]) + (y - self.startPosReal[1]) / (self.endPosReal[1] - self.startPosReal[1]), 3)
 
 
 class LandPlotDescriptor:
