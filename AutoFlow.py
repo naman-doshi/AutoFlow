@@ -67,7 +67,7 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
 
-    routes: list[list[tuple[float, float]]] = []
+    routes: list[list[tuple[tuple[float, float], int]]] = []
 
     for vehicle in selfish_vehicles:
 
@@ -212,8 +212,8 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                     previous_node[(neighbour_road.roadID, 0)] = (road.roadID, 1)
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
-        # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
-        route = [] 
+        # Initiate a list that stores the sequence of (next real position, road ID) for the vehicle
+        route: list[tuple[tuple[float, float], int]] = [] 
 
         # Initiate traceback variables
         current_roadID, current_position = vehicle.destinationRoad.roadID, vehicle.destinationPosition
@@ -240,6 +240,16 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
     # for route in routes:
     #     print(routes)
+
+    for route in routes:
+        for i in range(len(route)-1):
+            if (
+                route[i][0][0] != route[i+1][0][0] and 
+                route[i][0][1] != route[i+1][0][1] and 
+                euclideanDistance(route[i][0], route[i+1][0]) > 30
+            ):
+                raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
+            
     return routes
 
 def MLSortVehicles(autoflow_vehicles):
@@ -319,7 +329,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
 
-    routes: list[list[tuple[float, float]]] = []
+    routes: list[list[tuple[tuple[float, float], int]]] = []
 
     # Sort the list of vehicles
     sortVehicles(autoflow_vehicles)
@@ -504,8 +514,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                     )
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
-        # Initiate a list that stores the sequence of (next position, relative time taken) for the vehicle
-        route = [] 
+        # Initiate a list that stores the sequence of (next real position, road ID) for the vehicle
+        route: list[tuple[tuple[float, float], int]] = [] 
 
         # Initiate traceback variables
         current_roadID, current_position = vehicle.destinationRoad.roadID, vehicle.destinationPosition
@@ -541,6 +551,15 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     # for route in routes:
     #     print(route)
+
+    for route in routes:
+        for i in range(len(route)-1):
+            if (
+                route[i][0][0] != route[i+1][0][0] and 
+                route[i][0][1] != route[i+1][0][1] and 
+                euclideanDistance(route[i][0], route[i+1][0]) > 30
+            ):
+                raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
     
     return routes
 
