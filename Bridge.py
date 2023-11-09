@@ -276,13 +276,13 @@ async def handler(websocket: WebSocketServerProtocol):
 
     print("Finished routing")
     
-    roadLookup : dict[tuple[int, int], Road] = {}
-    for road in inp[1].roads:
-        roadLookup[(int(road.startPosReal[0]), int(road.startPosReal[1]))] = road
-        roadLookup[(int(road.endPosReal[0]), int(road.endPosReal[1]))] = road
         
     # print(roadLookup)
     if USE_AUTOFLOW:
+        roadLookup : dict[tuple[int, int], Road] = {}
+        for road in inp[1].roads:
+            roadLookup[(int(road.startPosReal[0]), int(road.startPosReal[1]))] = road
+            roadLookup[(int(road.endPosReal[0]), int(road.endPosReal[1]))] = road
         while True:
             try:
                 message = await websocket.recv()
