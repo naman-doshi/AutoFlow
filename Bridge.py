@@ -282,32 +282,27 @@ async def handler(websocket: WebSocketServerProtocol):
         roadLookup[(int(road.endPosReal[0]), int(road.endPosReal[1]))] = road
         
     # print(roadLookup)
-    while True:
-        try:
-            message = await websocket.recv()
-            # horrible security
-            carPositions = eval(message)
-            updateMessages = []
+    if USE_AUTOFLOW:
+        while True:
+            try:
+                message = await websocket.recv()
+                # horrible security
+                carPositions = eval(message)
+                updateMessages = []
 
-            # If we're not using autoflow, just send the routes back
-            if not USE_AUTOFLOW:
-                newRoutes = inp[2]
-                # await websocket.send(str(newRoutes))
-                # continue
+                newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], AVERAGE_ROAD_SPEED_MPS)
 
-            newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], AVERAGE_ROAD_SPEED_MPS)
+                for k in newRoutes:
+                    currentCar = VehicleUpdateMessage(id, [Vector3Message(*r) for r in k])
+                    updateMessages.append(currentCar)
 
-            for k in newRoutes:
-                currentCar = VehicleUpdateMessage(id, [Vector3Message(*r) for r in k])
-                updateMessages.append(currentCar)
+                await websocket.send(UpdateMessage(updateMessages).serialize())
+                
+            except websockets.exceptions.ConnectionClosedOK:
+                print("Connection closed, stopping reception.")
+                break
 
-            await websocket.send(UpdateMessage(updateMessages).serialize())
-            
-        except websockets.exceptions.ConnectionClosedOK:
-            print("Connection closed, stopping reception.")
-            break
-
-        await asyncio.sleep(5)
+            await asyncio.sleep(5)
 
 
 
