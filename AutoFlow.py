@@ -590,7 +590,42 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         else:
             finalRoutes.append([(x[0][0], x[0][1], x[1]) for x in newRoutes[i]])
 
-    return finalRoutes
+    # Final vetting
+    for route in finalRoutes:
+        if len(route) < 2:
+            continue
+
+        for i in range(len(route) - 1):
+
+            cur = (route[i][0], route[i][1])
+            next = (route[i + 1][0], route[i + 1][1])
+
+            if route[i][2] == route[i + 1][2] and cur != next:
+                dx = next[0] - cur[0]
+                dy = next[1] - cur[1]
+                dir = ""
+                if dx > 0:
+                    dir = "E"
+                elif dx < 0:
+                    dir = "W"
+                elif dy > 0:
+                    dir = "N"
+                elif dy < 0:
+                    dir = "S"
+                
+                if dir != landscape.lookupRoad[route[i][2]].direction:
+                    print("U Turn Detected")
+                    print(dx, dy, dir, landscape.lookupRoad[route[i][2]].direction)
+                    route = carPositions[finalRoutes.index(route)]["Routes"]
+                    break
+    
+    # Removing duplicates
+    lastRoutes = []
+    for i in finalRoutes:
+        if i not in lastRoutes:
+            lastRoutes.append(i)
+
+    return lastRoutes
                                      
     
 
