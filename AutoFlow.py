@@ -543,3 +543,55 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     #     print(route)
     
     return routes
+
+
+def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], AVERAGE_ROAD_SPEED_MPS):
+    """
+    Periodically recalculates routes optimally
+
+    Best runtime: 1s
+    """
+    specialCases = {}
+    for id, data in carPositions.items():
+
+        route = data["Routes"]
+
+        if id == -1:
+            continue
+
+        if len(route) <= 2:
+            specialCases[id] = route
+            
+        if len(route) >= 2:
+            nextRoadID = route[1][2]
+
+            if (nextRoadID == -1):
+                specialCases[id] = route
+                continue
+
+            nextRoad = landscape.lookupRoad[nextRoadID]
+            position = 0.05
+
+            if route[1][0] == nextRoad.endPosReal[0] and route[1][1] == nextRoad.endPosReal[1]:
+                position = 0.95
+
+            vehicles[id].setLocation(nextRoad, position)
+
+    try:
+        newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)[1]
+    except:
+        for i in vehicles:
+            print(i.startRealPosition, i.endRealPosition)
+
+    finalRoutes = []
+    for i in range(len(newRoutes)):
+        if i in specialCases.keys():
+            finalRoutes.append(specialCases[i])
+        else:
+            finalRoutes.append([(x[0][0], x[0][1], x[1]) for x in newRoutes[i]])
+
+    return finalRoutes
+                                     
+    
+
+    

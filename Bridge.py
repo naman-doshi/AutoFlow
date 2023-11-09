@@ -11,7 +11,7 @@ import websockets
 import AutoFlowBridgeCompat
 import LandscapeComponents
 from LandscapeComponents import Road
-from AutoFlow import computeAutoflowVehicleRoutes
+from AutoFlow import recalculateRoutes
 from AutoFlowBridgeCompat import AVERAGE_ROAD_SPEED_MPS
 
 PORT = 8001
@@ -219,6 +219,7 @@ async def handler(websocket: WebSocketServerProtocol):
         list[Vehicle],
     ] = outputToBridge(USE_AUTOFLOW)
 
+
     # Initial scene
     vehicleInits = []
     for id, posAndVeh in inp[0].items():
@@ -286,79 +287,21 @@ async def handler(websocket: WebSocketServerProtocol):
             message = await websocket.recv()
             # horrible security
             carPositions = eval(message)
-            newRoutes = {}
+            updateMessages = []
 
+            # If we're not using autoflow, just send the routes back
             if not USE_AUTOFLOW:
                 newRoutes = inp[2]
-                await websocket.send(str(newRoutes))
-            
-            autoflow_vehicles = []
-            finalRoutes = {}
+                # await websocket.send(str(newRoutes))
+                # continue
 
-            for car, data in carPositions.items():
-                x, y, roadID = data['Metadata']
+            newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], AVERAGE_ROAD_SPEED_MPS)
 
-                if roadID == -1 or car == -1:
-                    continue
+            for k in newRoutes:
+                currentCar = VehicleUpdateMessage(id, [Vector3Message(*r) for r in k])
+                updateMessages.append(currentCar)
 
-                landscape = inp[1]
-                road = landscape.lookupRoad[roadID]
-
-                isWithinRoad = road.is_within_bounds(x, y)
-                currentRoutes = data['Routes']
-
-                if len(currentRoutes) == 0:
-                    continue
-
-                if (not isWithinRoad):
-                    # Assume it's already on the second road
-                    currentRoutes.pop(0)
-                    
-                
-                # We can start navigating from the very start of the next road, since the car is already on the current road
-                vehicle = inp[0][car][2]
-                finalDestination = currentRoutes[-1]
-                
-                # sets position to start of next road
-                # this might need to be changed to the exact current position for added accuracy.
-
-                if (len(currentRoutes) <= 1):
-                    vehicle.setLocation(road, 0)
-                    autoflow_vehicles.append(vehicle)
-                    continue
-                
-                try:
-                    vehicle.setLocation(roadLookup[currentRoutes[1]], 0)
-                except:
-                    vehicle.setLocation(roadLookup[currentRoutes[0]], 0)
-
-                autoflow_vehicles.append(vehicle)
-            
-            newRoutes = computeAutoflowVehicleRoutes(autoflow_vehicles, inp[1], AVERAGE_ROAD_SPEED_MPS)
-
-            
-            i = 0
-
-            for id, data in carPositions.items():
-                x, y, roadID = data['Metadata']
-                if roadID == -1 or car == -1 or len(data["Routes"]) <= 1:
-                    continue
-                finalRoutes[id] = [(data["Routes"][0], roadLookup[data["Routes"][0]].roadID)] + newRoutes[i]
-                i += 1
-
-            print(finalRoutes)
-
-            finalRoutes = json.dumps(finalRoutes)
-
-            
-
-                # # three different destinations???
-                # print(vehicle.destinationRealPosition)
-                # print(inp[2][car][-1][0], inp[2][car][-1][1])
-                # print(currentRoutes[-1])
-
-
-            await websocket.send(finalRoutes)
+            await websocket.send(UpdateMessage(updateMessages).serialize())
             
         except websockets.exceptions.ConnectionClosedOK:
             print("Connection closed, stopping reception.")
