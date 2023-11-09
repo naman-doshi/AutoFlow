@@ -556,33 +556,42 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
 
         route = data["Routes"]
 
+        # if the car reached its desination, we can ignore it
         if id == -1:
             continue
-
+        
+        # if the car has <= 2 routes left, there's no need to update routes
         if len(route) <= 2:
             specialCases[id] = route
-            
+        
+        # but if a car has 2 routes, it should be put into the system — and if more than 2 routes, it should be updated
         if len(route) >= 2:
             nextRoadID = route[1][2]
 
             if (nextRoadID == -1):
                 specialCases[id] = route
                 continue
-
+            
             nextRoad = landscape.lookupRoad[nextRoadID]
+
+            # place car at the start (or end) of the next road, depending on what the next route coord is
             position = 0.05
 
             if route[1][0] == nextRoad.endPosReal[0] and route[1][1] == nextRoad.endPosReal[1]:
                 position = 0.95
 
+            
+            # internally update the vehicle's location
             vehicles[id].setLocation(nextRoad, position)
 
+    # for debugging: this never actually triggers
     try:
         newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)[1]
     except:
         for i in vehicles:
             print(i.startRealPosition, i.endRealPosition)
 
+    # replace special case routes, otherwise put routes in the right format
     finalRoutes = []
     for i in range(len(newRoutes)):
         if i in specialCases.keys():
@@ -590,7 +599,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         else:
             finalRoutes.append([(x[0][0], x[0][1], x[1]) for x in newRoutes[i]])
 
-    # Final vetting
+    # Final vetting if a car is going in the opposite direction to its road
     for route in finalRoutes:
         if len(route) < 2:
             continue
@@ -619,7 +628,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
                     route = carPositions[finalRoutes.index(route)]["Routes"]
                     break
     
-    # Removing duplicates
+    # Removing duplicates from routes (fixes double intersection issue)
     lastRoutes = []
     for i in finalRoutes:
         if i not in lastRoutes:
