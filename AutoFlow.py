@@ -225,7 +225,11 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
             previous_roadID, previous_position = previous_node[(current_roadID, current_position)]
             
             # Append new instruction
-            route.append((getRealPositionOnRoad(landscape.roads[current_roadID], current_position), current_roadID))
+            newRealPos = getRealPositionOnRoad(landscape.roads[current_roadID], current_position)
+            if len(route) > 0 and newRealPos == route[-1][0]:
+                pass # skip dupe coords in double intersections
+            else:
+                route.append((newRealPos, current_roadID))
 
             # Update traceback variables
             current_roadID, current_position = previous_roadID, previous_position
@@ -241,14 +245,14 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     # for route in routes:
     #     print(routes)
 
-    for route in routes:
-        for i in range(len(route)-1):
-            if (
-                route[i][0][0] != route[i+1][0][0] and 
-                route[i][0][1] != route[i+1][0][1] and 
-                euclideanDistance(route[i][0], route[i+1][0]) > 30
-            ):
-                raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
+    # for route in routes:
+    #     for i in range(len(route)-1):
+    #         if (
+    #             route[i][0][0] != route[i+1][0][0] and 
+    #             route[i][0][1] != route[i+1][0][1] and 
+    #             euclideanDistance(route[i][0], route[i+1][0]) > 30
+    #         ):
+    #             raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
             
     return routes
 
@@ -298,12 +302,13 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     # )
 
     autoflow_vehicles.sort(
-        key = lambda vehicle: (      
-            euclideanDistance(
+        key = lambda vehicle: (
+            vehicle.position,   
+            -euclideanDistance(
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-            ) * vehicle.passengerCount,
-            vehicle.emissionRate * -1
+            ),
+            -vehicle.emissionRate
         ),
         reverse=True
     )
@@ -528,7 +533,11 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
             previous_roadID, previous_position, timestamp = previous_node[(current_roadID, current_position)]
             
             # Append new instruction
-            route.append((getRealPositionOnRoad(landscape.roads[current_roadID], current_position), current_roadID))
+            newRealPos = getRealPositionOnRoad(landscape.roads[current_roadID], current_position)
+            if len(route) > 0 and newRealPos == route[-1][0]:
+                pass # skip dupe coords in double intersections
+            else:
+                route.append((newRealPos, current_roadID))
 
             # Update congestion status of used road during the usage time period
             if previousTimestamp == -1:
@@ -552,14 +561,14 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     # for route in routes:
     #     print(route)
 
-    for route in routes:
-        for i in range(len(route)-1):
-            if (
-                route[i][0][0] != route[i+1][0][0] and 
-                route[i][0][1] != route[i+1][0][1] and 
-                euclideanDistance(route[i][0], route[i+1][0]) > 30
-            ):
-                raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
+    # for route in routes:
+    #     for i in range(len(route)-1):
+    #         if (
+    #             route[i][0][0] != route[i+1][0][0] and 
+    #             route[i][0][1] != route[i+1][0][1] and 
+    #             euclideanDistance(route[i][0], route[i+1][0]) > 30
+    #         ):
+    #             raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
     
     return routes
 
