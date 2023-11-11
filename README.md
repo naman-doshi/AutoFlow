@@ -10,7 +10,7 @@ Our Unity project for simulation can be found at: https://github.com/Software-Ca
 
 ## Authors
 
-Naman Doshi, James Jiang, Xuanyu Liu, Bowen Wu
+Naman Doshi, James Jiang, Bowen Wu
 
 ---
 
