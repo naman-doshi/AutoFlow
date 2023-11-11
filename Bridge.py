@@ -292,8 +292,8 @@ async def handler(websocket: WebSocketServerProtocol):
 
                 newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], AVERAGE_ROAD_SPEED_MPS)
 
-                for k in newRoutes:
-                    currentCar = VehicleUpdateMessage(id, [Vector3Message(*r) for r in k])
+                for k in range(len(newRoutes)):
+                    currentCar = VehicleUpdateMessage(k, [Vector3Message(*r) for r in newRoutes[k]])
                     updateMessages.append(currentCar)
 
                 await websocket.send(UpdateMessage(updateMessages).serialize())

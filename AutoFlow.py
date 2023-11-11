@@ -48,12 +48,12 @@ def euclideanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> f
 # Main Functions
 # ===============================================================================================
 
-def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> tuple[list[tuple[tuple[float, float], int]]]:
+def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float, carPositions = {}) -> tuple[list[tuple[tuple[float, float], int]]]:
     """
     Compute the routes for selfish vehicles first, then AutoFlow vehicles.
     """
     selfish_vehicle_routes = computeSelfishVehicleRoutes(selfish_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)
-    autoflow_vehicle_routes = computeAutoflowVehicleRoutes(autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)
+    autoflow_vehicle_routes = computeAutoflowVehicleRoutes(autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS, carPositions=carPositions)
     return (selfish_vehicle_routes, autoflow_vehicle_routes)
 
 def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
@@ -312,7 +312,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     #     reverse=True
     # )
 
-def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
+def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float, carPositions = {}) -> list[list[tuple[float, float]]]:
     """
     AutoFlow vehicles perform cooperative A* with awareness of other AutoFlow vehicles.
     Vehicle priorities are determined by pre-trained gradient boosted regression trees.
@@ -379,10 +379,19 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         tiebreaker += 1
         heappush(open_nodes, start_node) 
 
+        broken = False
+
         while True: # loop until target point has been reached
 
             if len(open_nodes) == 0:
-                raise Exception("Path does not exist")
+                if carPositions == {}:
+                    raise Exception("Path does not exist")
+                else:
+                    broken = True
+                    route = carPositions[vehicle.id]["Routes"]
+                    route = [((round(x[0]), round(x[1])), x[2]) for x in route]
+                    routes[vehicle.id] = route
+                    break
 
             # Explore the node with the lowest fcost (hcost is tiebreaker)
             fcost, hcost, gcost, tb, road, position = heappop(open_nodes)
@@ -517,6 +526,8 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                     )
                     heappush(open_nodes, neighbour_node) # it does not matter whether neighbour is already in open list
 
+        if broken:
+            continue
         # Initiate a list that stores the sequence of (next real position, road ID) for the vehicle
         route: list[tuple[tuple[float, float], int]] = [] 
 
@@ -591,6 +602,12 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
     #     print(vehicles[i].destinationRealPosition)
     #     print(carPositions[i]["Routes"][-1])
 
+    # a buffer of n keeps the next n nodes the same
+    buffer = 1
+    buffers = {}
+    for i in range(len(vehicles)):
+        buffers[i] = []
+
     
     for id, data in carPositions.items():
         
@@ -603,15 +620,23 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         if id == -1:
             continue
         
-        # if the car has <= 2 routes left, there's no need to update routes
-        if len(route) <= 2:
+        # if the car has <= buffer+1 routes left, there's no need to update routes
+        if len(route) <= buffer + 1:
             specialCases[id] = route
+            if roadID != -1:
+                vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
         
-        # but if a car has 2 routes, it should be put into the system — and if more than 2 routes, it should be updated
-        if len(route) >= 2:
+        # but if a car has more than buffer + 1 entries, it should be updated
+        if len(route) > buffer + 1:
+            for i in range(buffer):
+                if i == buffer - 1:
+                    roadID = route[i][2]
+                    x, y = route[i][0], route[i][1]
+                buffers[id].append(route[i])
+            
             vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
 
-    newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)[1]
+    newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS, carPositions=carPositions)[1]
 
     # replace special case routes, otherwise put routes in the right format
     finalRoutes = []
@@ -619,16 +644,20 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         if i in specialCases.keys():
             finalRoutes.append(specialCases[i])
         else:
-            finalRoutes.append([(round(x[0][0]), round(x[0][1]), x[1]) for x in newRoutes[i]])
+            temp = buffers[i]
+            calculatedRoutes = [(round(x[0][0]), round(x[0][1]), x[1]) for x in newRoutes[i]]
+
+            if calculatedRoutes != carPositions[i]["Routes"]:
+                temp += calculatedRoutes
+                finalRoutes.append(temp)
+            else:
+                finalRoutes.append(calculatedRoutes)
+
             
-            if finalRoutes[-1][1] == carPositions[i]["Routes"][0] and finalRoutes[-1][2] == carPositions[i]["Routes"][1]:
-                del finalRoutes[-1][0]
+
 
             if finalRoutes[-1] != carPositions[i]["Routes"]:
                 print("Updated route for car", i)
-                print("Old route:", carPositions[i]["Routes"])
-                print("New route:", finalRoutes[-1])
-                print()
 
     
 
