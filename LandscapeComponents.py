@@ -389,7 +389,14 @@ class Road:
         """
         Returns the normalised position of a given coordinate on this road.
         """
-        return round((x - self.startPosReal[0]) / (self.endPosReal[0] - self.startPosReal[0]) + (y - self.startPosReal[1]) / (self.endPosReal[1] - self.startPosReal[1]), 3)
+        if self.length == 0:
+            return 0
+        if self.startPosReal[0] == self.endPosReal[0]:
+            # road is going north or south
+            return round((y - min(self.startPosReal[1], self.endPosReal[1])) / self.length, 3)
+        if self.startPosReal[1] == self.endPosReal[1]:
+            # road is going east or west
+            return round((x - min(self.startPosReal[0], self.endPosReal[0])) / self.length, 3)
 
 
 class LandPlotDescriptor:

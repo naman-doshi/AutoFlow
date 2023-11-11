@@ -1,3 +1,7 @@
+# ideas
+# fix emission calculation
+# tweak sorting
+
 """
 This script contains the multiple route computing algorithms, including:
 - selfish A* routing algorithm
@@ -138,28 +142,28 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                 roadEndPosition
             ) / road.speedLimit_MPS
 
-            # Compute waiting time until the next green light
-            if len(road_end_intersection.neighbours) >= 3:
-                current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
-                if (
-                    (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
-                    > current_modulus_time
-                ):
-                    waiting_time = (
-                        road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
-                        - current_modulus_time
-                    )
-                    if waiting_time > 0: # Case 1: current time is earlier in the cycle
-                        pass
-                    else: # Case 2: current time is within the green light duration, allow vehicle through
-                        waiting_time = 0
-                else: # Case 3: current time is later in the cycle
-                    waiting_time = (
-                        len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
-                        - current_modulus_time 
-                        + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
-                    )
-                time_taken += waiting_time # update time taken to reflect traffic light waiting time
+            # # Compute waiting time until the next green light
+            # if len(road_end_intersection.neighbours) >= 3:
+            #     current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
+            #     if (
+            #         (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
+            #         > current_modulus_time
+            #     ):
+            #         waiting_time = (
+            #             road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
+            #             - current_modulus_time
+            #         )
+            #         if waiting_time > 0: # Case 1: current time is earlier in the cycle
+            #             pass
+            #         else: # Case 2: current time is within the green light duration, allow vehicle through
+            #             waiting_time = 0
+            #     else: # Case 3: current time is later in the cycle
+            #         waiting_time = (
+            #             len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
+            #             - current_modulus_time 
+            #             + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
+            #         )
+            #     time_taken += waiting_time # update time taken to reflect traffic light waiting time
 
             # Set previous node of road end node to road start node
             previous_node[(road.roadID, 1)] = (road.roadID, position)
@@ -256,26 +260,9 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
             
     return routes
 
-def MLSortVehicles(autoflow_vehicles):
-    listVer = [
-        [i.passengerCount, i.emissionRate, euclideanDistance(
-                 getRealPositionOnRoad(i.road, i.position),
-                 getRealPositionOnRoad(i.destinationRoad, i.destinationPosition)
-             )]
-          for i in autoflow_vehicles]
-    
-    indices = pred.predict(listVer)
-
-    result = [0] * len(indices)
-
-    for i in range(len(indices)):
-        result[indices[i]] = autoflow_vehicles[i]
-    
-    return result
-
 def sortVehicles(autoflow_vehicles: list[Vehicle]):
     """
-    Sorts vehicles in-place baseed on a trainable priority function.
+    Sorts vehicles based on a priority function.
     """
         
     # result = MachineLearning.predict([
@@ -301,19 +288,29 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     #     )
     # )
 
-    autoflow_vehicles.sort(
+    return sorted(
+        autoflow_vehicles,
         key = lambda vehicle: (
-            vehicle.position,   
+            vehicle.passengerCount,   
             -euclideanDistance(
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
             ),
-            -vehicle.emissionRate
+            vehicle.emissionRate
         ),
         reverse=True
     )
 
-    return MLSortVehicles(autoflow_vehicles)
+    # autoflow_vehicles.sort(
+    #     key = lambda vehicle: (      
+    #         euclideanDistance(
+    #             getRealPositionOnRoad(vehicle.road, vehicle.position),
+    #             getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
+    #         ) * vehicle.passengerCount,
+    #         vehicle.emissionRate * -1
+    #     ),
+    #     reverse=True
+    # )
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
@@ -334,10 +331,11 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
 
-    routes: list[list[tuple[tuple[float, float], int]]] = []
+    routes: dict[int, list[tuple[tuple[float, float], int]]] = {}
 
     # Sort the list of vehicles
-    sortVehicles(autoflow_vehicles)
+    autoflow_vehicles = sortVehicles(autoflow_vehicles)
+
 
     #delayFactor = len(landscape.roads) // max(landscape.xSize, landscape.ySize)
     # delayFactor = 1.5 # exponential time
@@ -556,7 +554,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         # print(route)
 
         # Store computed route in routes list                
-        routes.append(route)
+        routes[vehicle.id] = route
 
     # for route in routes:
     #     print(route)
@@ -570,7 +568,10 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     #         ):
     #             raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
     
-    return routes
+    routes = dict(sorted(routes.items()))
+    newRoutes = [routes[k] for k in routes.keys()]
+
+    return newRoutes
 
 
 def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], AVERAGE_ROAD_SPEED_MPS):
@@ -579,10 +580,24 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
 
     Best runtime: 1s
     """
+    assert len(carPositions) == len(vehicles)
+
     specialCases = {}
+
+
+    # for i in range(len(vehicles)):
+    #     if len(carPositions[i]["Routes"]) == 0:
+    #         continue
+    #     print(vehicles[i].destinationRealPosition)
+    #     print(carPositions[i]["Routes"][-1])
+
+    
     for id, data in carPositions.items():
+        
+        vehicle = vehicles[id]
 
         route = data["Routes"]
+        x, y, roadID = data["Metadata"]
 
         # if the car reached its desination, we can ignore it
         if id == -1:
@@ -594,30 +609,9 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         
         # but if a car has 2 routes, it should be put into the system — and if more than 2 routes, it should be updated
         if len(route) >= 2:
-            nextRoadID = route[1][2]
+            vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
 
-            if (nextRoadID == -1):
-                specialCases[id] = route
-                continue
-            
-            nextRoad = landscape.lookupRoad[nextRoadID]
-
-            # place car at the start (or end) of the next road, depending on what the next route coord is
-            position = 0.05
-
-            if route[1][0] == nextRoad.endPosReal[0] and route[1][1] == nextRoad.endPosReal[1]:
-                position = 0.95
-
-            
-            # internally update the vehicle's location
-            vehicles[id].setLocation(nextRoad, position)
-
-    # for debugging: this never actually triggers
-    try:
-        newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)[1]
-    except:
-        for i in vehicles:
-            print(i.startRealPosition, i.endRealPosition)
+    newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)[1]
 
     # replace special case routes, otherwise put routes in the right format
     finalRoutes = []
@@ -625,44 +619,20 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
         if i in specialCases.keys():
             finalRoutes.append(specialCases[i])
         else:
-            finalRoutes.append([(x[0][0], x[0][1], x[1]) for x in newRoutes[i]])
+            finalRoutes.append([(round(x[0][0]), round(x[0][1]), x[1]) for x in newRoutes[i]])
+            
+            if finalRoutes[-1][1] == carPositions[i]["Routes"][0] and finalRoutes[-1][2] == carPositions[i]["Routes"][1]:
+                del finalRoutes[-1][0]
 
-    # Final vetting if a car is going in the opposite direction to its road
-    for route in finalRoutes:
-        if len(route) < 2:
-            continue
+            if finalRoutes[-1] != carPositions[i]["Routes"]:
+                print("Updated route for car", i)
+                print("Old route:", carPositions[i]["Routes"])
+                print("New route:", finalRoutes[-1])
+                print()
 
-        for i in range(len(route) - 1):
-
-            cur = (route[i][0], route[i][1])
-            next = (route[i + 1][0], route[i + 1][1])
-
-            if route[i][2] == route[i + 1][2] and cur != next:
-                dx = next[0] - cur[0]
-                dy = next[1] - cur[1]
-                dir = ""
-                if dx > 0:
-                    dir = "E"
-                elif dx < 0:
-                    dir = "W"
-                elif dy > 0:
-                    dir = "N"
-                elif dy < 0:
-                    dir = "S"
-                
-                if dir != landscape.lookupRoad[route[i][2]].direction:
-                    print("U Turn Detected")
-                    print(dx, dy, dir, landscape.lookupRoad[route[i][2]].direction)
-                    route = carPositions[finalRoutes.index(route)]["Routes"]
-                    break
     
-    # Removing duplicates from routes (fixes double intersection issue)
-    lastRoutes = []
-    for i in finalRoutes:
-        if i not in lastRoutes:
-            lastRoutes.append(i)
 
-    return lastRoutes
+    return finalRoutes
                                      
     
 

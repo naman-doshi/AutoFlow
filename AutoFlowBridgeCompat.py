@@ -93,7 +93,7 @@ def getPositions(
     positions = []
     pos = 0
     if road.cellSpan == 0:
-        increment = 1
+        return []
     else:
         increment = 1 / (road.cellSpan * 4)
     while pos < 1:
@@ -193,7 +193,7 @@ while current_index < EV_count:
     # else:
     #     vehicle = ElectricVehicle(useAutoFlow=False)
     #     selfish_vehicles.append(vehicle)
-    vehicle = ElectricVehicle()
+    vehicle = ElectricVehicle(current_index)
     vehicles.append(vehicle)
     current_index += 1
 
@@ -205,7 +205,7 @@ while current_index < VEHICLE_COUNT:
     # else:
     #     vehicle = ConventionalVehicle(useAutoFlow=False)
     #     selfish_vehicles.append(vehicle)
-    vehicle = ConventionalVehicle()
+    vehicle = ConventionalVehicle(current_index)
     vehicles.append(vehicle)
     current_index += 1
 

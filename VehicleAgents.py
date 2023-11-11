@@ -53,7 +53,7 @@ class Vehicle(ABC):
         self.destinationRealPosition = (realPositionX, realPositionY)
 
     def __deepcopy__(self, memo):
-        agentCopy: Vehicle = self.__class__()
+        agentCopy: Vehicle = self.__class__(self.id)
         agentCopy.setLocation(self.road, self.position)
         agentCopy.setDestination(self.destinationRoad, self.destinationPosition)
         agentCopy.routingSystem = self.routingSystem
@@ -71,13 +71,14 @@ class ConventionalVehicle(Vehicle):
     """
 
     def __init__(
-        self, useAutoFlow: bool = False
+        self, id, useAutoFlow: bool = False
     ) -> None:
         self.emissionRate = randint(100, Vehicle.MAX_EMISSION_RATE)
         #self.emissionRate = 150
         self.passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT)
         #self.passengerCount = 1
         self.setRoutingSystem(int(useAutoFlow))
+        self.id = id
 
 
 class ElectricVehicle(Vehicle):
@@ -87,8 +88,9 @@ class ElectricVehicle(Vehicle):
     """
 
     def __init__(
-            self, useAutoFlow: bool = False
+            self, id, useAutoFlow: bool = False
     ) -> None:
+        self.id = id
         self.emissionRate = 0
         self.passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT)
         #self.passengerCount = 1
