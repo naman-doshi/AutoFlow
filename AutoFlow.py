@@ -656,8 +656,9 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             route = finalRoutes[-1]
             seen = []
             for j in route:
-                if j not in seen:
+                if len(seen) > 0 and j != seen[-1]:
                     seen.append(j)
+                    
 
             del finalRoutes[len(finalRoutes) - 1]
             finalRoutes.append(seen)
