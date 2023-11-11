@@ -17,6 +17,7 @@ from random import sample
 from heapq import *
 from math import ceil
 from ML import pred
+import random
 #=========================================
 
 # ===============================================================================================
@@ -70,6 +71,8 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     Every node pushed into the Open list will be the start of a road (or the starting position of the vehicle).
     The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
+
+    random.shuffle(selfish_vehicles)
 
     routes: list[list[tuple[tuple[float, float], int]]] = []
 
@@ -348,6 +351,10 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     for vehicle in autoflow_vehicles:
 
+        if vehicle.destinationRealPosition == vehicle.startRealPosition:
+            routes[vehicle.id] = []
+            continue
+
         tiebreaker = 0 # tiebreaker value for when all costs are equal
 
         # Hashmap that maps each node to their fcost
@@ -603,7 +610,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
     #     print(carPositions[i]["Routes"][-1])
 
     # a buffer of n keeps the next n nodes the same
-    buffer = 1
+    buffer = 3
     buffers = {}
     for i in range(len(vehicles)):
         buffers[i] = []
@@ -625,6 +632,9 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             specialCases[id] = route
             if roadID != -1:
                 vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
+            else:
+                vehicle.setLocation(landscape.lookupRoad[1], 0)
+                vehicle.setDestination(landscape.lookupRoad[1], 0)
         
         # but if a car has more than buffer + 1 entries, it should be updated
         if len(route) > buffer + 1:
@@ -642,7 +652,18 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
     finalRoutes = []
     for i in range(len(newRoutes)):
         if i in specialCases.keys():
+
             finalRoutes.append(specialCases[i])
+            route = finalRoutes[-1]
+            
+            seen = []
+
+            if (len(route) != 0):
+                seen = [route[0]]
+                for j in route:
+                    if j != seen[-1]:
+                        seen.append(j)
+
         else:
             temp = buffers[i]
             calculatedRoutes = [(round(x[0][0]), round(x[0][1]), x[1]) for x in newRoutes[i]]
@@ -654,17 +675,18 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
                 finalRoutes.append(calculatedRoutes)
 
             route = finalRoutes[-1]
+            
             seen = []
-            for j in route:
-                if len(seen) > 0 and j != seen[-1]:
-                    seen.append(j)
+
+            if (len(route) != 0):
+                seen = [route[0]]
+                for j in route:
+                    if j != seen[-1]:
+                        seen.append(j)
                     
 
             del finalRoutes[len(finalRoutes) - 1]
             finalRoutes.append(seen)
-
-            
-
 
             if finalRoutes[-1] != carPositions[i]["Routes"]:
                 print("Updated route for car", i)
