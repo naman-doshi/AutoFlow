@@ -595,7 +595,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
 
     # a buffer of n keeps the next n nodes the same
     # the lower the buffer, the better the performance since there's more room to improve
-    buffer = 2
+    buffer = 3
     buffers = {}
     for i in range(len(vehicles)):
         buffers[i] = []
