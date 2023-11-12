@@ -78,8 +78,20 @@ for road in landscape.roads:
     ) or (1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize):
         road_speeds += road.speedLimit
         road_count += 1
+
 AVERAGE_ROAD_SPEED = road_speeds / road_count
 AVERAGE_ROAD_SPEED_MPS = AVERAGE_ROAD_SPEED * 1000 / 3600
+
+# Compute max road speed for all roads within map area
+MAX_ROAD_SPEED = 0
+for road in landscape.roads:
+    if (
+        1 <= road.start[0] <= landscape.xSize and 1 <= road.start[1] <= landscape.ySize
+    ) or (1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize):
+        if road.speedLimit > MAX_ROAD_SPEED:
+            MAX_ROAD_SPEED = road.speedLimit
+            
+MAX_ROAD_SPEED_MPS = MAX_ROAD_SPEED * 1000 / 3600
 
 
 # ===============================================================================================

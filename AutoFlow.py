@@ -44,27 +44,34 @@ def euclideanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> f
     """
     return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
 
+def manhattanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> float:
+    """
+    Calculates the manhattan distance between two positions.
+    The unit of measurement is metres.
+    """
+    return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
 
 # ===============================================================================================
 # Main Functions
 # ===============================================================================================
 
-def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float, carPositions = {}) -> tuple[list[tuple[tuple[float, float], int]]]:
+def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float, carPositions = {}) -> tuple[list[tuple[tuple[float, float], int]]]:
     """
     Compute the routes for selfish vehicles first, then AutoFlow vehicles.
     """
-    selfish_vehicle_routes = computeSelfishVehicleRoutes(selfish_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS)
-    autoflow_vehicle_routes = computeAutoflowVehicleRoutes(autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS, carPositions=carPositions)
+    selfish_vehicle_routes = computeSelfishVehicleRoutes(selfish_vehicles, landscape, MAX_ROAD_SPEED_MPS)
+    autoflow_vehicle_routes = computeAutoflowVehicleRoutes(autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS, carPositions=carPositions)
     return (selfish_vehicle_routes, autoflow_vehicle_routes)
 
-def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
+def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
     Selfish routing algorithm of Google Maps.
     Vehicles are not knowledgeable of future traffic and therefore only aware of congestion AFTER they occur.
 
     Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
     - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
-    - hcost: optimistic approximate time required to reach destination using AVERAGE_ROAD_SPEED
+    - hcost: optimistic approximate time required to reach destination using MAX_ROAD_SPEED
     - gcost: cost so far i.e. time taken so far, represents the ABSOLUTE time
     - tiebreaker: an unique integer used as a tiebreaker when all costs are equal
 
@@ -97,10 +104,10 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
         # Calculate the cost variables of the starting position
         gcost = 0
-        hcost = euclideanDistance(
+        hcost = manhattanDistance(
             getRealPositionOnRoad(vehicle.road, vehicle.position), 
             destination_position
-        ) / AVERAGE_ROAD_SPEED_MPS
+        ) / MAX_ROAD_SPEED_MPS
         fcost = gcost + hcost
 
         # Add starting position of the vehicle to open_nodes
@@ -145,29 +152,6 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
                 roadEndPosition
             ) / road.speedLimit_MPS
 
-            # # Compute waiting time until the next green light
-            # if len(road_end_intersection.neighbours) >= 3:
-            #     current_modulus_time = gcost % (len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration)
-            #     if (
-            #         (road_end_intersection.trafficLightLookup[road_start_intersection] + 1) * road_end_intersection.trafficLightDuration 
-            #         > current_modulus_time
-            #     ):
-            #         waiting_time = (
-            #             road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration 
-            #             - current_modulus_time
-            #         )
-            #         if waiting_time > 0: # Case 1: current time is earlier in the cycle
-            #             pass
-            #         else: # Case 2: current time is within the green light duration, allow vehicle through
-            #             waiting_time = 0
-            #     else: # Case 3: current time is later in the cycle
-            #         waiting_time = (
-            #             len(road_end_intersection.neighbours) * road_end_intersection.trafficLightDuration
-            #             - current_modulus_time 
-            #             + road_end_intersection.trafficLightLookup[road_start_intersection] * road_end_intersection.trafficLightDuration
-            #         )
-            #     time_taken += waiting_time # update time taken to reflect traffic light waiting time
-
             # Set previous node of road end node to road start node
             previous_node[(road.roadID, 1)] = (road.roadID, position)
 
@@ -178,10 +162,10 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
             position = 1
             real_position = roadEndPosition
             gcost += time_taken
-            hcost = euclideanDistance(
+            hcost = manhattanDistance(
                 real_position, 
                 destination_position
-            ) / AVERAGE_ROAD_SPEED_MPS
+            ) / MAX_ROAD_SPEED_MPS
             fcost = gcost + hcost
 
             # Examine neighbours
@@ -204,10 +188,10 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
                 # Compute all cost values
                 neighbour_gcost = gcost + time_taken
-                neighbour_hcost = euclideanDistance(
+                neighbour_hcost = manhattanDistance(
                     neighbour_road.startPosReal, 
                     destination_position
-                ) / AVERAGE_ROAD_SPEED_MPS
+                ) / MAX_ROAD_SPEED_MPS
                 neighbour_fcost = neighbour_gcost + neighbour_hcost
 
                 neighbour_node = (neighbour_fcost, neighbour_hcost, neighbour_gcost, tiebreaker, neighbour_road, 0)
@@ -295,7 +279,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
         autoflow_vehicles,
         key = lambda vehicle: (
             vehicle.passengerCount,   
-            -euclideanDistance(
+            -manhattanDistance(
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
             ),
@@ -315,7 +299,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     #     reverse=True
     # )
 
-def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, AVERAGE_ROAD_SPEED_MPS: float, carPositions = {}) -> list[list[tuple[float, float]]]:
+def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float, carPositions = {}) -> list[list[tuple[float, float]]]:
     """
     AutoFlow vehicles perform cooperative A* with awareness of other AutoFlow vehicles.
     Vehicle priorities are determined by pre-trained gradient boosted regression trees.
@@ -326,7 +310,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
     Each node is a tuple that stores (fcost, hcost, gcost, tiebreaker, road, position).
     - fcost: sum of gcost and hcost, node with lowest fcost will be evaluated first
-    - hcost: optimistic approximate time required to reach destination using AVERAGE_ROAD_SPEED
+    - hcost: optimistic approximate time required to reach destination using MAX_ROAD_SPEED
     - gcost: cost so far i.e. time taken so far, represents the ABSOLUTE time
     - tiebreaker: an unique integer used as a tiebreaker when all costs are equal
 
@@ -375,10 +359,10 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
         # Calculate the cost variables of the starting position
         gcost = 0
-        hcost = euclideanDistance(
+        hcost = manhattanDistance(
             getRealPositionOnRoad(vehicle.road, vehicle.position), 
             destination_position
-        ) / AVERAGE_ROAD_SPEED_MPS
+        ) / MAX_ROAD_SPEED_MPS
         fcost = gcost + hcost
 
         # Add starting position of the vehicle to open_nodes
@@ -490,10 +474,10 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
             position = 1
             real_position = roadEndPosition
             gcost += time_taken
-            hcost = euclideanDistance(
+            hcost = manhattanDistance(
                 real_position, 
                 destination_position
-            ) / AVERAGE_ROAD_SPEED_MPS
+            ) / MAX_ROAD_SPEED_MPS
             fcost = gcost + hcost
 
             # Examine neighbours
@@ -516,10 +500,10 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
 
                 # Compute all cost values
                 neighbour_gcost = gcost + time_taken
-                neighbour_hcost = euclideanDistance(
+                neighbour_hcost = manhattanDistance(
                     neighbour_road.startPosReal, 
                     destination_position
-                ) / AVERAGE_ROAD_SPEED_MPS
+                ) / MAX_ROAD_SPEED_MPS
                 neighbour_fcost = neighbour_gcost + neighbour_hcost
 
                 neighbour_node = (neighbour_fcost, neighbour_hcost, neighbour_gcost, tiebreaker, neighbour_road, 0)
@@ -592,7 +576,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     return newRoutes
 
 
-def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], AVERAGE_ROAD_SPEED_MPS):
+def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], MAX_ROAD_SPEED_MPS):
     """
     Periodically recalculates routes optimally
 
@@ -610,7 +594,8 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
     #     print(carPositions[i]["Routes"][-1])
 
     # a buffer of n keeps the next n nodes the same
-    buffer = 3
+    # the lower the buffer, the better the performance since there's more room to improve
+    buffer = 2
     buffers = {}
     for i in range(len(vehicles)):
         buffers[i] = []
@@ -646,7 +631,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             
             vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
 
-    newRoutes = computeRoutes([], vehicles, landscape, AVERAGE_ROAD_SPEED_MPS, carPositions=carPositions)[1]
+    newRoutes = computeRoutes([], vehicles, landscape, MAX_ROAD_SPEED_MPS, carPositions=carPositions)[1]
 
     # replace special case routes, otherwise put routes in the right format
     finalRoutes = []
@@ -689,7 +674,7 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             finalRoutes.append(seen)
 
             if finalRoutes[-1] != carPositions[i]["Routes"]:
-                print("Updated route for car", i)
+                print(len(finalRoutes[-1]), len(carPositions[i]["Routes"]))
 
     
 

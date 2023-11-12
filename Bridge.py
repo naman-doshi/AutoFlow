@@ -12,7 +12,7 @@ import AutoFlowBridgeCompat
 import LandscapeComponents
 from LandscapeComponents import Road
 from AutoFlow import recalculateRoutes
-from AutoFlowBridgeCompat import AVERAGE_ROAD_SPEED_MPS
+from AutoFlowBridgeCompat import MAX_ROAD_SPEED_MPS
 
 PORT = 8001
 
@@ -290,7 +290,7 @@ async def handler(websocket: WebSocketServerProtocol):
                 carPositions = eval(message)
                 updateMessages = []
 
-                newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], AVERAGE_ROAD_SPEED_MPS)
+                newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], MAX_ROAD_SPEED_MPS)
 
                 for k in range(len(newRoutes)):
                     currentCar = VehicleUpdateMessage(k, [Vector3Message(*r) for r in newRoutes[k]])

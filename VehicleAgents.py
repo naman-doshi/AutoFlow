@@ -95,3 +95,20 @@ class ElectricVehicle(Vehicle):
         self.passengerCount = randint(1, Vehicle.MAX_PASSENGER_COUNT)
         #self.passengerCount = 1
         self.setRoutingSystem(int(useAutoFlow))
+
+class Bus(Vehicle):
+    
+        """
+        Buses are a special type of vehicle that can carry up to 40 passengers.
+        Emissions lie in a range around 800g/km.
+        https://www.carbonindependent.org/20.html
+        """
+    
+        def __init__(
+                self, id, useAutoFlow: bool = False
+        ) -> None:
+            self.id = id
+            self.emissionRate = randint(600, 1000)
+            #self.emissionRate = 150
+            self.passengerCount = randint(20, 70)
+            self.setRoutingSystem(int(useAutoFlow))
