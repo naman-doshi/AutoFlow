@@ -209,19 +209,42 @@ class JSONUtils:
 async def handler(websocket: WebSocketServerProtocol):
     # User input
     print("Session opened")
-    USE_AUTOFLOW = False if input("Use AutoFlow (y/n)? ").startswith("n") else True
-    print(USE_AUTOFLOW)
+    autoflow_percentage = float(input("Enter the percentage of vehicles that are AutoFlow-enabled (0-100): "))
+    update_interval = int(input("Enter the period of updates for route recalculation (1 recalculation every n seconds): "))
 
     inp: tuple[
         dict[int, tuple[float, float, Vehicle]],
         Landscape,
         dict[int, list[tuple[float, float, float]]],
         list[Vehicle],
-    ] = outputToBridge(USE_AUTOFLOW)
+    ] = outputToBridge(autoflowPercentage=autoflow_percentage)
+
+    autoflow_vehicles = []
+    selfish_vehicles = []
+    for vehicle in inp[3]:
+        if vehicle.routingSystem == "Autoflow":
+            autoflow_vehicles.append(vehicle)
+        else:
+            selfish_vehicles.append(vehicle)
 
 
     # Initial scene
     vehicleInits = []
+
+    # creating a dummy vehicle init for the update interval
+    vehicleInits.append(
+        VehicleInitMessage(
+            update_interval,
+            0,
+            (0, 0),
+            0,
+            0,
+            False,
+            0,
+        )
+    )
+
+
     for id, posAndVeh in inp[0].items():
         vehicleInits.append(
             VehicleInitMessage(
@@ -229,8 +252,8 @@ async def handler(websocket: WebSocketServerProtocol):
                 posAndVeh[2].road.roadID,
                 (posAndVeh[0], posAndVeh[1]),
                 0,
-                inp[3][id].emissionRate,
-                USE_AUTOFLOW,
+                posAndVeh[2].emissionRate,
+                posAndVeh[2].routingSystem == "Autoflow",
                 posAndVeh[2].passengerCount,
             )
         )
@@ -275,34 +298,30 @@ async def handler(websocket: WebSocketServerProtocol):
     await websocket.send(UpdateMessage(updateMessages).serialize())
 
     print("Finished routing")
-    
-        
-    # print(roadLookup)
-    if USE_AUTOFLOW:
-        roadLookup : dict[tuple[int, int], Road] = {}
-        for road in inp[1].roads:
-            roadLookup[(int(road.startPosReal[0]), int(road.startPosReal[1]))] = road
-            roadLookup[(int(road.endPosReal[0]), int(road.endPosReal[1]))] = road
-        while True:
-            try:
-                message = await websocket.recv()
-                # horrible security
-                carPositions = eval(message)
-                updateMessages = []
 
-                newRoutes = recalculateRoutes(carPositions, inp[1], inp[3], MAX_ROAD_SPEED_MPS)
+    await asyncio.sleep(9.5)
 
-                for k in range(len(newRoutes)):
-                    currentCar = VehicleUpdateMessage(k, [Vector3Message(*r) for r in newRoutes[k]])
-                    updateMessages.append(currentCar)
+    while True:
+        try:
+            message = await websocket.recv()
+            
+            # horrible security
+            carPositions = eval(message)
+            updateMessages = []
 
-                await websocket.send(UpdateMessage(updateMessages).serialize())
-                
-            except websockets.exceptions.ConnectionClosedOK:
-                print("Connection closed, stopping reception.")
-                break
+            newRoutes = recalculateRoutes(carPositions, inp[1], autoflow_vehicles, MAX_ROAD_SPEED_MPS, update_interval)
 
-            await asyncio.sleep(5)
+            for k in newRoutes.keys():
+                currentCar = VehicleUpdateMessage(k, [Vector3Message(*r) for r in newRoutes[k]])
+                updateMessages.append(currentCar)
+
+            await websocket.send(UpdateMessage(updateMessages).serialize())
+            
+        except websockets.exceptions.ConnectionClosedOK:
+            print("Connection closed, stopping reception.")
+            break
+
+        await asyncio.sleep(update_interval)
 
 
 

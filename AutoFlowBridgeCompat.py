@@ -353,82 +353,67 @@ for vehicle in vehicles:
 
 def modify_population(
     original_vehicle_population: list[Vehicle], autoflow_percentage: float
-) -> tuple[list[Vehicle], list[Vehicle]]:
+):
     """
     Returns a new population of vehicle agents with a specified percentage having the AutoFlow routing system.
     A tuple of two lists of vehicles are returned: (selfish_vehicles, autoflow_vehicles).
     """
 
-    # Make a deepcopy of the original vehicle population for modification
-    vehicle_population: list[Vehicle] = deepcopy(original_vehicle_population)
-    # vehicle_population = original_vehicle_population
-
     # Determine AutoFlow distribution
-    marked_indexes = set(
-        sample(
-            [i for i in range(TOTAL_VEHICLE_COUNT)],
-            TOTAL_VEHICLE_COUNT * autoflow_percentage // 100,
-        )
-    )
-
-    # Initiate vehicle lists
-    selfish_vehicles: list[Vehicle] = []
-    autoflow_vehicles: list[Vehicle] = []
+    numAutoFlow = int(autoflow_percentage * TOTAL_VEHICLE_COUNT // 100)  # number of AutoFlow vehicles to spawn
+    marked_indexes = sample(range(TOTAL_VEHICLE_COUNT), numAutoFlow)  # indexes of AutoFlow vehicles
+    population = deepcopy(original_vehicle_population)
 
     # Distribute AutoFlow & categorise vehicles
     for i in range(TOTAL_VEHICLE_COUNT):
         if i in marked_indexes:
-            vehicle_population[i].setRoutingSystem(1)  # switch to AutoFlow
-            autoflow_vehicles.append(vehicle_population[i])
+            population[i].setRoutingSystem(1)  # switch to AutoFlow
         else:
-            selfish_vehicles.append(vehicle_population[i])
+            population[i].setRoutingSystem(0)
 
-    # Return vehicle lists
-    return (selfish_vehicles, autoflow_vehicles)
+    return population
 
 landscape.precomputeUnityCache()
+allVehicles = vehicles
 
-
-def outputToBridge(
-    useAutoflow: bool,
-) -> tuple[
+def outputToBridge(autoflowPercentage : float) -> tuple[
     dict[int, tuple[float, float, Vehicle]],
     Landscape,
     dict[int, list[tuple[float, float, float]]],
     list[Vehicle],
 ]:
-    if useAutoflow:
-        # 100% AutoFlow
-        selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
-        selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
+
+        vehicles = modify_population(allVehicles, autoflowPercentage)
+
+        selfish_vehicles = []
+        autoflow_vehicles = []
+
+        for vehicle in vehicles:
+            if vehicle.routingSystem == "Autoflow":
+                autoflow_vehicles.append(vehicle)
+            else:
+                selfish_vehicles.append(vehicle)
+
+        print(len(autoflow_vehicles), "AutoFlow vehicles")
+        print(len(selfish_vehicles), "selfish vehicles")
+
+        routes = computeRoutes(
             selfish_vehicles, autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS
         )
-        routes2 = deepcopy(autoflow_vehicle_routes)
+
+        routes = deepcopy(routes)
+
 
         initPos: dict[int, tuple[float, float, Vehicle]] = {}
-        for i, vehicle in enumerate(autoflow_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle,
-            )
-        routes: dict[int, list[tuple[float, float, float]]] = {}
-        for i, route in enumerate(routes2):
-            routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
-        return (initPos, landscape, routes, autoflow_vehicles)
+        for i, vehicle in enumerate(vehicles):
+            pos = getRealPositionOnRoad(vehicle.road, vehicle.position)
+            initPos[i] = (pos[0], pos[1], vehicle)
 
-    else:
-        # 100% Selfish
-        selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
-        selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-            selfish_vehicles, autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS
-        )
-        routes1 = deepcopy(selfish_vehicle_routes)
+        routes2: dict[int, list[tuple[float, float, float]]] = {}
+        for id, route in routes.items():
+            vehicle = initPos[id][2]
+            routes2[vehicle.id] = [(node[0][0], node[0][1], node[1]) for node in route]
 
-        initPos: dict[int, tuple[float, float, Vehicle]] = {}
-        for i, vehicle in enumerate(selfish_vehicles):
-            initPos[i] = getRealPositionOnRoad(vehicle.road, vehicle.position) + (
-                vehicle,
-            )
-        routes: dict[int, list[tuple[float, float, float]]] = {}
-        for i, route in enumerate(routes1):
-            routes[i] = [(node[0][0], node[0][1], node[1]) for node in route]
-        return (initPos, landscape, routes, selfish_vehicles)
+        # print(routes2)
+
+        return (initPos, landscape, routes2, vehicles)

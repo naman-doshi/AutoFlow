@@ -56,13 +56,21 @@ def manhattanDistance(pos1: tuple[float, float], pos2: tuple[float, float]) -> f
 # Main Functions
 # ===============================================================================================
 
-def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float, carPositions = {}) -> tuple[list[tuple[tuple[float, float], int]]]:
+def computeRoutes(selfish_vehicles: list[Vehicle], autoflow_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float, carPositions = {}):
     """
     Compute the routes for selfish vehicles first, then AutoFlow vehicles.
     """
+    routes = {}
     selfish_vehicle_routes = computeSelfishVehicleRoutes(selfish_vehicles, landscape, MAX_ROAD_SPEED_MPS)
     autoflow_vehicle_routes = computeAutoflowVehicleRoutes(autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS, carPositions=carPositions)
-    return (selfish_vehicle_routes, autoflow_vehicle_routes)
+
+    for i in range(len(autoflow_vehicle_routes)):
+        routes[autoflow_vehicles[i].id] = autoflow_vehicle_routes[i]
+    
+    for i in range(len(selfish_vehicle_routes)):
+        routes[selfish_vehicles[i].id] = selfish_vehicle_routes[i]
+
+    return routes
 
 def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float) -> list[list[tuple[float, float]]]:
     """
@@ -230,18 +238,6 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
 
         # Store computed route in routes list            
         routes.append(route)
-
-    # for route in routes:
-    #     print(routes)
-
-    # for route in routes:
-    #     for i in range(len(route)-1):
-    #         if (
-    #             route[i][0][0] != route[i+1][0][0] and 
-    #             route[i][0][1] != route[i+1][0][1] and 
-    #             euclideanDistance(route[i][0], route[i+1][0]) > 30
-    #         ):
-    #             raise Exception(f"Goals are too far apart: {route[i][0]} and {route[i+1][0]}")
             
     return routes
 
@@ -249,30 +245,6 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     """
     Sorts vehicles based on a priority function.
     """
-        
-    # result = MachineLearning.predict([
-    #     [
-    #         autoflow_vehicles[i].passengerCount, 
-    #         autoflow_vehicles[i].emissionRate, 
-    #         euclideanDistance(
-    #             getRealPositionOnRoad(autoflow_vehicles[i].road, autoflow_vehicles[i].position),
-    #             getRealPositionOnRoad(autoflow_vehicles[i].destinationRoad, autoflow_vehicles[i].destinationPosition)
-    #         )
-    #     ] for i in range(len(autoflow_vehicles))
-    # ])
-        
-    # result = sorted(
-    #     autoflow_vehicles,
-    #     key = lambda vehicle: (            
-    #         emissionRateWeighting * vehicle.emissionRate / Vehicle.MAX_EMISSION_RATE + 
-    #         passengerCountWeighting * vehicle.passengerCount / Vehicle.MAX_PASSENGER_COUNT +
-    #         distanceHeuristicWeighting * euclideanDistance(
-    #             getRealPositionOnRoad(vehicle.road, vehicle.position),
-    #             getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-    #         ) / (CELL_SIZE_METRES * 20 * 20)
-    #     )
-    # )
-
     return sorted(
         autoflow_vehicles,
         key = lambda vehicle: (
@@ -284,17 +256,6 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
         ),
         reverse=True
     )
-
-    # autoflow_vehicles.sort(
-    #     key = lambda vehicle: (      
-    #         euclideanDistance(
-    #             getRealPositionOnRoad(vehicle.road, vehicle.position),
-    #             getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-    #         ) * vehicle.passengerCount,
-    #         vehicle.emissionRate * -1
-    #     ),
-    #     reverse=True
-    # )
 
 def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: Landscape, MAX_ROAD_SPEED_MPS: float, carPositions = {}) -> list[list[tuple[float, float]]]:
     """
@@ -583,7 +544,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     return newRoutes
 
 
-def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], MAX_ROAD_SPEED_MPS):
+def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehicle], MAX_ROAD_SPEED_MPS, update_interval : int):
     """
     Periodically recalculates routes optimally
 
@@ -593,19 +554,16 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
 
     specialCases = {}
 
-
-    # for i in range(len(vehicles)):
-    #     if len(carPositions[i]["Routes"]) == 0:
-    #         continue
-    #     print(vehicles[i].destinationRealPosition)
-    #     print(carPositions[i]["Routes"][-1])
-
     # a buffer of n keeps the next n nodes the same
     # the lower the buffer, the better the performance since there's more room to improve
-    buffer = 3
+    # automatic setting assuming you can get through 1 goal per second
+    buffer = update_interval
+
     buffers = {}
     for i in range(len(vehicles)):
-        buffers[i] = []
+        buffers[vehicles[i].id] = []
+    
+    vehicles = {vehicle.id: vehicle for vehicle in vehicles}
 
     
     for id, data in carPositions.items():
@@ -638,50 +596,30 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             
             vehicle.setLocation(landscape.lookupRoad[roadID], landscape.lookupRoad[roadID].get_position(x, y))
 
-    newRoutes = computeRoutes([], vehicles, landscape, MAX_ROAD_SPEED_MPS, carPositions=carPositions)[1]
+    vehicles = [vehicles[i] for i in vehicles.keys()]
+    newRoutes = computeRoutes([], vehicles, landscape, MAX_ROAD_SPEED_MPS, carPositions=carPositions)
 
     # replace special case routes, otherwise put routes in the right format
-    finalRoutes = []
-    for i in range(len(newRoutes)):
-        if i in specialCases.keys():
-
-            finalRoutes.append(specialCases[i])
-            route = finalRoutes[-1]
-            
-            seen = []
-
-            if (len(route) != 0):
-                seen = [route[0]]
-                for j in route:
-                    if j != seen[-1]:
-                        seen.append(j)
-
+    finalRoutes = {}
+    for id, route in newRoutes.items():
+        if id in specialCases.keys():
+            finalRoutes[id] = specialCases[id]
         else:
-            temp = buffers[i]
-            calculatedRoutes = [(round(x[0][0]), round(x[0][1]), x[1]) for x in newRoutes[i]]
+            temp = buffers[id]
+            calculatedRoutes = [(round(x[0][0]), round(x[0][1]), x[1]) for x in route]
 
-            if calculatedRoutes != carPositions[i]["Routes"]:
+            if calculatedRoutes != carPositions[id]["Routes"]:
+                if temp[-1] == calculatedRoutes[0]:
+                    del calculatedRoutes[0]
                 temp += calculatedRoutes
-                finalRoutes.append(temp)
+                finalRoutes[id] = temp
             else:
-                finalRoutes.append(calculatedRoutes)
+                finalRoutes[id] = calculatedRoutes
 
-            route = finalRoutes[-1]
-            
-            seen = []
-
-            if (len(route) != 0):
-                seen = [route[0]]
-                for j in route:
-                    if j != seen[-1]:
-                        seen.append(j)
-                    
-
-            del finalRoutes[len(finalRoutes) - 1]
-            finalRoutes.append(seen)
-
-            # if finalRoutes[-1] != carPositions[i]["Routes"]:
-            #     print(len(finalRoutes[-1]), len(carPositions[i]["Routes"]))
+        # if finalRoutes[id] != carPositions[id]["Routes"]:
+        #     print(finalRoutes[id])
+        #     print(carPositions[id]["Routes"])
+        #     print()
 
     
 
