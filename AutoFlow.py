@@ -556,8 +556,8 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
 
     # a buffer of n keeps the next n nodes the same
     # the lower the buffer, the better the performance since there's more room to improve
-    # automatic setting assuming you can get through 1 goal per second
-    buffer = update_interval
+    # automatic setting assuming you can get through 2 goals per second
+    buffer = update_interval * 2
 
     buffers = {}
     for i in range(len(vehicles)):
