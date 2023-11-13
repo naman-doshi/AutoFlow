@@ -79,8 +79,6 @@ def computeSelfishVehicleRoutes(selfish_vehicles: list[Vehicle], landscape: Land
     The Closed list contains all visited nodes (including end points of a road as well as the starting position).
     """
 
-    random.shuffle(selfish_vehicles)
-
     routes: list[list[tuple[tuple[float, float], int]]] = []
 
     for vehicle in selfish_vehicles:
@@ -278,8 +276,7 @@ def sortVehicles(autoflow_vehicles: list[Vehicle]):
     return sorted(
         autoflow_vehicles,
         key = lambda vehicle: (
-            vehicle.passengerCount,   
-            -manhattanDistance(
+            vehicle.passengerCount * manhattanDistance(
                 getRealPositionOnRoad(vehicle.road, vehicle.position),
                 getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
             ),
@@ -332,6 +329,16 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     # Set up space-time reservation table 
     reservation_table: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
     # reservation_table[roadID][timestamp in seconds] => number of vehicles on road at timestamp
+
+    # populate reservation table, since every car needs to get to the end of its spawn road
+    for vehicle in autoflow_vehicles:
+
+        positionRemaining = 1 - vehicle.position
+        lengthRemaining = vehicle.road.length * positionRemaining
+        timeTaken = lengthRemaining / vehicle.road.speedLimit_MPS
+
+        for timestamp in range(ceil(timeTaken)):
+            reservation_table[vehicle.road.roadID][timestamp] += congestionCost
 
     for vehicle in autoflow_vehicles:
 
