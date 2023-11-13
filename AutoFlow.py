@@ -673,8 +673,8 @@ def recalculateRoutes(carPositions, landscape : Landscape, vehicles : list[Vehic
             del finalRoutes[len(finalRoutes) - 1]
             finalRoutes.append(seen)
 
-            if finalRoutes[-1] != carPositions[i]["Routes"]:
-                print(len(finalRoutes[-1]), len(carPositions[i]["Routes"]))
+            # if finalRoutes[-1] != carPositions[i]["Routes"]:
+            #     print(len(finalRoutes[-1]), len(carPositions[i]["Routes"]))
 
     
 

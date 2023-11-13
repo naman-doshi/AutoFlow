@@ -90,7 +90,7 @@ for road in landscape.roads:
     ) or (1 <= road.end[0] <= landscape.xSize and 1 <= road.end[1] <= landscape.ySize):
         if road.speedLimit > MAX_ROAD_SPEED:
             MAX_ROAD_SPEED = road.speedLimit
-            
+
 MAX_ROAD_SPEED_MPS = MAX_ROAD_SPEED * 1000 / 3600
 
 
@@ -99,9 +99,7 @@ MAX_ROAD_SPEED_MPS = MAX_ROAD_SPEED * 1000 / 3600
 # ===============================================================================================
 
 
-def getPositions(
-    road: Road,
-):  # returns all the available positions on a road for vehicle spawning
+def getCarPositions(road: Road):
     positions = []
     pos = 0
     if road.cellSpan == 0:
@@ -114,6 +112,28 @@ def getPositions(
     # positions.append(1)
     # print(positions)
     return positions
+
+def getBusPositions(road: Road, start: bool):
+    positions = []
+    if road.cellSpan == 0:
+        return []
+    else:
+        increment = 1 / (road.cellSpan * 4)
+
+
+    if start:
+        available = road.available_starting_positions
+    else:
+        return [(road, i) for i in road.available_ending_positions]
+
+    for position in available:
+        second = position + increment
+        if (position in available) and (second in available):
+            positions.append(position)
+    
+    return [(road, i) for i in positions]
+
+
 
 # # Create two pools of available starting coordinates (as every road segment has a pair of opposite roads)
 # available_starting_coordinates: list[tuple[Road, float]] = []
@@ -156,49 +176,45 @@ def getPositions(
 #             available_destination_coordinates.append((road, pos))
 
 available_starting_coordinates: list[tuple[Road, float]] = []
-for road in landscape.roads:
-    for pos in getPositions(road):
-        realpos = getRealPositionOnRoad(road, pos)
-        if (
-            CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)
-        ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
-            available_starting_coordinates.append((road, pos))
-
-# Create two pools of available destination coordinates (as every road segment has a pair of opposite roads)
 available_destination_coordinates: list[tuple[Road, float]] = []
 for road in landscape.roads:
-    for pos in getPositions(road):
+    for pos in getCarPositions(road):
         realpos = getRealPositionOnRoad(road, pos)
-        if (
-            CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)
-        ) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
+        if (CELL_SIZE_METRES <= realpos[0] <= CELL_SIZE_METRES * (landscape.xSize+1)) and (CELL_SIZE_METRES <= realpos[1] <= CELL_SIZE_METRES * (landscape.ySize+1)):
+            available_starting_coordinates.append((road, pos))
             available_destination_coordinates.append((road, pos))
+            road.available_starting_positions.append(pos)
+            road.available_ending_positions.append(pos)
+
 
 # Generate a valid vehicle count
 MAX_VEHICLE_COUNT = min(len(available_starting_coordinates), len(available_destination_coordinates))
-print(len(available_starting_coordinates))
-print(len(available_destination_coordinates))
 print()
-print(MAX_VEHICLE_COUNT)
+print("Number of starting and ending coordinates:", len(available_starting_coordinates))
 print()
 #VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 9 / 10), MAX_VEHICLE_COUNT)
 #VEHICLE_COUNT = randint(int(MAX_VEHICLE_COUNT * 6 / 10), int(MAX_VEHICLE_COUNT * 7 / 10)) # auto-generated
-VEHICLE_COUNT = int(MAX_VEHICLE_COUNT * 2 / 10)
+vehicle_density = float(input("Enter vehicle density as a percentage (0-100): "))
+print()
+VEHICLE_COUNT = int(MAX_VEHICLE_COUNT * vehicle_density / 100)
 
 # Check that the vehicle count does not exceed the maximum allowed vehicle count
-assert VEHICLE_COUNT <= MAX_VEHICLE_COUNT
+assert VEHICLE_COUNT <= MAX_VEHICLE_COUNT, "Vehicle count exceeds maximum allowed vehicle count"
 
 # Array storing all vehicle agents
 vehicles: list[Vehicle] = []
 
 # Determine EV distribution
 EV_percentage = randint(10, 20)  # based on real world data
-EV_count = EV_percentage * VEHICLE_COUNT // 100  # number of EVs to spawn
+EV_COUNT = EV_percentage * VEHICLE_COUNT // 100  # number of EVs to spawn
+
+# Bus distribution (realistically, around 5% that of cars)
+BUS_COUNT = VEHICLE_COUNT // 20
 
 current_index = 0
 
 # Spawn EVs
-while current_index < EV_count:
+while current_index < EV_COUNT:
     # if current_index in marked_indexes:
     #     vehicle = ElectricVehicle(useAutoFlow=True)
     #     autoflow_vehicles.append(vehicle)
@@ -223,20 +239,51 @@ while current_index < VEHICLE_COUNT:
 
 # Assign random starting coordinates to all vehicles
 for vehicle in vehicles:
-    coordIndex = randint(
-        0, len(available_starting_coordinates) - 1
-    )  # select random location from pool
-    road, position = available_starting_coordinates[
-        coordIndex
-    ]  # unpack location into road and position
+    coordIndex = randint(0, len(available_starting_coordinates) - 1)  # select random location from pool
+    road, position = available_starting_coordinates[coordIndex]  # unpack location into road and position
     vehicle.setLocation(road, position)  # Set vehicle's starting location
     available_starting_coordinates.pop(coordIndex)  # Remove assigned position from pool
+    road.available_starting_positions.remove(position)
 
-for (
-    road
-) in (
-    landscape.roads
-):  # sort vehicle stacks, cars at the front are at the front/start of the deque
+# Assign buses to the remaining spots
+buses = []
+while current_index < VEHICLE_COUNT + BUS_COUNT:
+    vehicle = Bus(current_index)
+    buses.append(vehicle)
+    current_index += 1
+
+availableBusStarts = []
+for road in landscape.roads:
+    availableBusStarts.extend(getBusPositions(road, True))
+
+
+placedBuses = []
+for bus in buses:
+    if len(availableBusStarts) == 0:
+        break
+
+    road, position = random.choice(availableBusStarts)
+    increment = 1 / (road.cellSpan * 4)
+    
+    bus.setLocation(road, position)
+
+    availableBusStarts.remove((road, position))
+    if (road, position + increment) in availableBusStarts:
+        availableBusStarts.remove((road, position + increment))
+
+    road.available_starting_positions.remove(position)
+    if position + increment in road.available_starting_positions:
+        road.available_starting_positions.remove(position + increment)
+
+    placedBuses.append(bus)
+
+vehicles.extend(placedBuses)
+
+TOTAL_VEHICLE_COUNT = len(vehicles)
+
+print(len(placedBuses), "buses placed.")
+
+for road in landscape.roads:  # sort vehicle stacks, cars at the front are at the front/start of the deque
     road.vehicleStack = deque(
         sorted(road.vehicleStack, key=lambda vehicle: vehicle.position, reverse=True)
     )
@@ -249,21 +296,18 @@ for (
 #         raise Exception("Overlapping vehicle positions")
 #     seen.add(start)
 
-print(len(vehicles))
+print("Number of total vehicles:", len(vehicles))
 print()
 
 vehicleLookup = {}
 
 # Assign random destination coordinates to all vehicles
 for vehicle in vehicles:
-    coordIndex = randint(
-        0, len(available_destination_coordinates) - 1
-    )  # select random location from pool
-    road, position = available_destination_coordinates[
-        coordIndex
-    ]  # unpack location into road and position
+    coordIndex = randint(0, len(available_destination_coordinates) - 1)  # select random location from pool
+    road, position = available_destination_coordinates[coordIndex]  # unpack location into road and position
     vehicle.setDestination(road, position)  # Set vehicle's destination location
     available_destination_coordinates.pop(coordIndex)  # Remove assigned position from pool
+    road.available_ending_positions.remove(position)
 
 # # Checking for existence of double intersections
 # di_exists = False
@@ -322,8 +366,8 @@ def modify_population(
     # Determine AutoFlow distribution
     marked_indexes = set(
         sample(
-            [i for i in range(VEHICLE_COUNT)],
-            VEHICLE_COUNT * autoflow_percentage // 100,
+            [i for i in range(TOTAL_VEHICLE_COUNT)],
+            TOTAL_VEHICLE_COUNT * autoflow_percentage // 100,
         )
     )
 
@@ -332,7 +376,7 @@ def modify_population(
     autoflow_vehicles: list[Vehicle] = []
 
     # Distribute AutoFlow & categorise vehicles
-    for i in range(VEHICLE_COUNT):
+    for i in range(TOTAL_VEHICLE_COUNT):
         if i in marked_indexes:
             vehicle_population[i].setRoutingSystem(1)  # switch to AutoFlow
             autoflow_vehicles.append(vehicle_population[i])
@@ -341,94 +385,6 @@ def modify_population(
 
     # Return vehicle lists
     return (selfish_vehicles, autoflow_vehicles)
-
-
-# Debug only, not used if bridging
-if __name__ == "__main__":
-    # ===============================================================================================
-    # Testing
-    # ===============================================================================================
-
-    # print(vehicles)
-    # print(VEHICLE_COUNT)
-    # print()
-
-    # 100% Selfish
-    # selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
-    # selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-    #     selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
-    # )
-    # routes1 = deepcopy(selfish_vehicle_routes)
-
-    # for vehicle in selfish_vehicles:
-    #     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
-    #     #print(vehicle.destinationPosition, vehicle.destinationRoad)
-    #     print(
-    #         getRealPositionOnRoad(vehicle.road, vehicle.position),
-    #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-    #     )
-
-    # print(len(selfish_vehicle_routes))
-    # print()
-
-    # for route in selfish_vehicle_routes:
-    #     print(route)
-    #     print()
-
-    # for i in range(len(selfish_vehicles)):
-    #     if len(routes1[i]) == 0:
-    #         continue
-    #     if selfish_vehicles[i].road.roadID != routes1[i][0][1]:
-    #         print(f"RoadID mismatch: {autoflow_vehicles[i].road.roadID}, {routes1[i][0][1]}")
-
-    # 100% AutoFlow
-    selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
-    selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-        selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
-    )
-    routes2 = deepcopy(autoflow_vehicle_routes)
-
-    # for i in range(len(autoflow_vehicles)):
-    #     if len(routes2[i]) == 0:
-    #         continue
-    #     if autoflow_vehicles[i].road.roadID != routes2[i][0][1]:
-    #         print(f"RoadID mismatch: {autoflow_vehicles[i].road.roadID}, {routes2[i][0][1]}")
-
-    # for vehicle in autoflow_vehicles:
-    #     #print(vehicle.road, vehicle.road.positionTable, vehicle.position)
-    #     #print(vehicle.destinationPosition, vehicle.destinationRoad)
-    #     print(
-    #         getRealPositionOnRoad(vehicle.road, vehicle.position),
-    #         getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)
-    #     )
-
-    # print(len(autoflow_vehicle_routes))
-    # print()
-
-    # for route in autoflow_vehicle_routes:
-    #     print(route)
-    #     print()
-
-    # Function for calculating total distance of a route
-    def calculate_total_distance(route: list[tuple[float, float]]):
-        if route == []:
-            return 0
-        total_distance = 0
-        current_pos = route[0][0]
-        for i in range(1, len(route)):
-            total_distance += euclideanDistance(current_pos, route[i][0])
-            current_pos = route[i][0]
-        return total_distance
-
-
-#     for i in range(len(autoflow_vehicle_routes)):
-#         vehicle = autoflow_vehicles[i]
-#         print(f"""
-# Start: {getRealPositionOnRoad(vehicle.road, vehicle.position)},
-# Destination: {getRealPositionOnRoad(vehicle.destinationRoad, vehicle.destinationPosition)}"""
-#          )
-#         print(autoflow_vehicle_routes[i])
-
 
 landscape.precomputeUnityCache()
 
@@ -445,7 +401,7 @@ def outputToBridge(
         # 100% AutoFlow
         selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 100)
         selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-            selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
+            selfish_vehicles, autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS
         )
         routes2 = deepcopy(autoflow_vehicle_routes)
 
@@ -463,7 +419,7 @@ def outputToBridge(
         # 100% Selfish
         selfish_vehicles, autoflow_vehicles = modify_population(vehicles, 0)
         selfish_vehicle_routes, autoflow_vehicle_routes = computeRoutes(
-            selfish_vehicles, autoflow_vehicles, landscape, AVERAGE_ROAD_SPEED_MPS
+            selfish_vehicles, autoflow_vehicles, landscape, MAX_ROAD_SPEED_MPS
         )
         routes1 = deepcopy(selfish_vehicle_routes)
 
