@@ -16,7 +16,6 @@ from VehicleAgents import *
 from random import sample
 from heapq import *
 from math import ceil
-from ML import pred
 import random
 #=========================================
 
