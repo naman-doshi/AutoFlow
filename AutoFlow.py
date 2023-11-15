@@ -298,7 +298,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
         timeTaken = lengthRemaining / vehicle.road.speedLimit_MPS
 
         for timestamp in range(ceil(timeTaken)):
-            reservation_table[vehicle.road.roadID][timestamp] += vehicle.cost
+            reservation_table[vehicle.road.roadID][timestamp] += congestionCost
 
     for vehicle in autoflow_vehicles:
 
@@ -511,7 +511,7 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
                 previousTimestamp = timestamp
             elif timestamp != -1: # skip virtual pathways for reservation table marking
                 for i in range(int(timestamp), int(previousTimestamp)):
-                    reservation_table[previous_roadID][i] += vehicle.cost          
+                    reservation_table[previous_roadID][i] += congestionCost              
                 previousTimestamp = timestamp # update previous timestamp
 
             # Update traceback variables
