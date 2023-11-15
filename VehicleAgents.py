@@ -26,6 +26,7 @@ class Vehicle(ABC):
     routingSystems = {0: "Selfish", 1: "Autoflow"}  # expandable
     MAX_EMISSION_RATE = 250
     MAX_PASSENGER_COUNT = 6
+    cost = 1
 
     @abstractmethod
     def __init__(self) -> None:
@@ -99,10 +100,12 @@ class ElectricVehicle(Vehicle):
 class Bus(Vehicle):
     
         """
-        Buses are a special type of vehicle that can carry up to 40 passengers.
+        Buses are a special type of vehicle that can carry up to 70 passengers.
         Emissions lie in a range around 800g/km.
         https://www.carbonindependent.org/20.html
         """
+
+        cost = 2
     
         def __init__(
                 self, id, useAutoFlow: bool = False
