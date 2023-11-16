@@ -291,14 +291,14 @@ def computeAutoflowVehicleRoutes(autoflow_vehicles: list[Vehicle], landscape: La
     # reservation_table[roadID][timestamp in seconds] => number of vehicles on road at timestamp
 
     # populate reservation table, since every car needs to get to the end of its spawn road
-    for vehicle in autoflow_vehicles:
+    # for vehicle in autoflow_vehicles:
 
-        positionRemaining = 1 - vehicle.position
-        lengthRemaining = vehicle.road.length * positionRemaining
-        timeTaken = lengthRemaining / vehicle.road.speedLimit_MPS
+    #     positionRemaining = 1 - vehicle.position
+    #     lengthRemaining = vehicle.road.length * positionRemaining
+    #     timeTaken = lengthRemaining / vehicle.road.speedLimit_MPS
 
-        for timestamp in range(ceil(timeTaken)):
-            reservation_table[vehicle.road.roadID][timestamp] += congestionCost
+    #     for timestamp in range(ceil(timeTaken)):
+    #         reservation_table[vehicle.road.roadID][timestamp] += congestionCost
 
     for vehicle in autoflow_vehicles:
 
