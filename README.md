@@ -1,4 +1,3 @@
-![Untitled](Logo.png)
 
 ---
 
