@@ -42,8 +42,9 @@ class Vehicle(ABC):
             position  # float between 0 and 1 indicating linear position along a road
         )
         road.vehicleStack.append(self)
-        realPositionX = (road.endPosReal[0] - road.startPosReal[0]) * position + road.startPosReal[0]
-        realPositionY = (road.endPosReal[1] - road.startPosReal[1]) * position + road.startPosReal[1]
+
+        realPositionX = float(road.endPosReal[0] - road.startPosReal[0]) * position + road.startPosReal[0]
+        realPositionY = float(road.endPosReal[1] - road.startPosReal[1]) * position + road.startPosReal[1]
         self.startRealPosition = (realPositionX, realPositionY)
 
     def setDestination(self, road: Road, position: float):

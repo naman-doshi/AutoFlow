@@ -24,7 +24,7 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (15, 15)
+LANDSCAPE_SIZE = (25, 25)
 LANDSCAPE_FEATURES = [
     #(COMMERCIAL_BLOCK, 15),
     (COMMERCIAL_BLOCK_LARGE, 1),
@@ -245,6 +245,7 @@ for vehicle in vehicles:
     available_starting_coordinates.pop(coordIndex)  # Remove assigned position from pool
     road.available_starting_positions.remove(position)
 
+
 # Assign buses to the remaining spots
 buses = []
 while current_index < VEHICLE_COUNT + BUS_COUNT:
@@ -252,30 +253,34 @@ while current_index < VEHICLE_COUNT + BUS_COUNT:
     buses.append(vehicle)
     current_index += 1
 
-availableBusStarts = []
-for road in landscape.roads:
-    availableBusStarts.extend(getBusPositions(road, True))
-
-
+i = 0
 placedBuses = []
-for bus in buses:
-    if len(availableBusStarts) == 0:
-        break
+for road in landscape.roads:
+    positions = getBusPositions(road, True)
+    for position in positions:
+        position = float(position[1])
+        if (i == len(buses)):
+            break
 
-    road, position = random.choice(availableBusStarts)
-    increment = 1 / (road.cellSpan * 4)
+        increment = 1 / (road.cellSpan * 4)
+
+        bus = buses[i]
+        bus.setLocation(road, position)
+
+        placedBuses.append(buses[i])
+
+        road.available_starting_positions.remove(position)
+
+        if position + increment in road.available_starting_positions:
+            road.available_starting_positions.remove(position + increment)
+
+        if position + increment in positions:
+            break
+
+        i += 1
     
-    bus.setLocation(road, position)
-
-    availableBusStarts.remove((road, position))
-    if (road, position + increment) in availableBusStarts:
-        availableBusStarts.remove((road, position + increment))
-
-    road.available_starting_positions.remove(position)
-    if position + increment in road.available_starting_positions:
-        road.available_starting_positions.remove(position + increment)
-
-    placedBuses.append(bus)
+    if (i == len(buses)):
+            break
 
 vehicles.extend(placedBuses)
 
