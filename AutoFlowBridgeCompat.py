@@ -259,7 +259,7 @@ for road in landscape.roads:
     positions = getBusPositions(road, True)
     for position in positions:
         position = float(position[1])
-        if (i == len(buses)):
+        if (i == len(buses)) or position not in road.available_starting_positions:
             break
 
         increment = 1 / (road.cellSpan * 4)
