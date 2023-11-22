@@ -24,7 +24,7 @@ LARGE_PARK_AREA = LandPlotDescriptor(
 
 
 # ================ INPUTS =================
-LANDSCAPE_SIZE = (25, 25)
+LANDSCAPE_SIZE = (15, 15)
 LANDSCAPE_FEATURES = [
     #(COMMERCIAL_BLOCK, 15),
     (COMMERCIAL_BLOCK_LARGE, 1),
